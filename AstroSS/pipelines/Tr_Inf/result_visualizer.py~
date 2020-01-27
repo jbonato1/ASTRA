@@ -1,0 +1,192 @@
+import numpy as np
+import os
+import h5py
+from skimage import io
+import matplotlib.pyplot as plt 
+import torch
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms, datasets, models
+from torchsummary import summary
+import torch.nn as nn
+from collections import defaultdict
+import torch.optim as optim
+from torch.optim import lr_scheduler
+from sklearn.metrics import f1_score
+import cv2
+def score(y_pred,y_true):
+    return f1_score(y_true,y_pred,average='binary')
+
+def clean_art(soma,proc):
+    
+    mask_tot = soma+proc
+    mask_tot[mask_tot>0.5]=255
+    mask_tot[mask_tot<=0.5]=0
+    mask_tot= np.uint8(mask_tot)
+    ret, labels = cv2.connectedComponents(mask_tot)
+    N=200
+    for i in range(1, ret+1):
+        pts =  np.where(labels == i)
+
+        if len(pts[0]) < N:
+    #         print(len(pts[0]))
+            labels[pts] = 0
+        else:
+            #print(len(pts[0]))
+            labels[pts] = 255
+    mask_tot=labels
+    
+    #draw bounding box
+    
+    ret, thresh = cv2.threshold(np.uint8(mask_tot), 127, 255, 0)
+    _, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    contours_poly = [None]*len(contours)
+    boundRect = [None]*len(contours)
+
+    for i, c in enumerate(contours):
+
+        contours_poly[i] = cv2.approxPolyDP(c, 1, True)
+        boundRect[i] = cv2.boundingRect(contours_poly[i])
+
+
+    
+
+    drawing = np.zeros((thresh.shape[0], thresh.shape[1], 3), dtype=np.uint8)    
+
+    for i in range(len(contours)):
+        color = (255,0,0)
+        #cv2.drawContours(drawing, contours_poly, i, (0,0,255))
+        cv2.rectangle(drawing, (int(boundRect[i][0]-10), int(boundRect[i][1])-10), \
+          (int(boundRect[i][0]+boundRect[i][2]+10), int(boundRect[i][1]+boundRect[i][3]+10)), color, cv2.FILLED)
+    
+    drawing[drawing>0]=1
+    
+    return drawing[:,:,0]
+
+
+# model to import
+from model.Unet_Res152Back_nest import nestedUNetUp152
+from model.Unet_IncResV2_nest import IncResV2
+from model.Unet_nest_5 import nestedUNetUp5
+num='2lbis'
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#model = IncResV2(3)
+#model = nestedUNetUp152(3)
+model= nestedUNetUp5(3)
+model = model.to(device)
+model.load_state_dict(torch.load('/home/jbonato/Documents/U-Net/weights/IncResV2.pt'))
+#model.load_state_dict(torch.load('/home/jbonato/Documents/U-Net/weights/nestedUNetUp5_2_nf.pt'))
+
+
+
+set_dir='/home/jbonato/Documents/U-Net/test/'
+
+items = os.listdir(set_dir)
+print(len(items))
+counter = 0
+im = np.empty((256,256),dtype = np.float64 )
+for item in items:
+    path_to_item = os.path.join(set_dir,item)
+    filename, file_extension = os.path.splitext(path_to_item)
+    if os.path.isfile(path_to_item) and file_extension == '.tif' :
+        #print(filename)
+        im = io.imread(path_to_item)
+        if counter == 0: 
+            out_im_test = im
+            out_im_test = out_im_test[np.newaxis,:,:]
+        else:
+            out_im_test = np.concatenate((out_im_test,im[np.newaxis,:,:]),axis=0)
+        dset= h5py.File(filename+'.hdf5','r') 
+        proc_mask =  np.asarray(dset['Values'])
+        soma_mask =  np.asarray(dset['Values_soma'])
+        back = np.ones((256,256),dtype=np.int64)-proc_mask-soma_mask
+        back[back<0]=0
+        mask = np.concatenate((proc_mask[:,:,np.newaxis],soma_mask[:,:,np.newaxis],back[:,:,np.newaxis]),axis=2).astype(np.uint8)
+        
+        if counter ==0:
+            label_test = mask
+            label_test = label_test[np.newaxis,:,:,:]
+        else:
+            label_test = np.concatenate((label_test,mask[np.newaxis,:,:,:]),axis=0)
+        counter+=1
+label_test = np.swapaxes(label_test,1,3)
+label_test = np.swapaxes(label_test,2,3)
+out_im_test = out_im_test[:,np.newaxis,:,:].astype(np.float64)
+print('im shape:',out_im_test.shape)
+print('label shape', label_test.shape)
+
+class SimDataset_test(Dataset):
+    def __init__(self, count, transform=None,flag=True):
+        if flag:
+            self.input_images, self.target_masks = out_im_test[:,:,:,:],label_test[:,:,:,:]     
+        
+        self.transform = transform
+    
+    def __len__(self):
+        return len(self.input_images)
+    
+    def __getitem__(self, idx):        
+        image = self.input_images[idx]
+        #print('ee',image.shape)
+        mask = self.target_masks[idx]
+        if self.transform:
+            image = torch.from_numpy(image).float()
+            
+            mask = torch.from_numpy(mask).float()
+        return [image, mask]
+
+import math
+
+model.eval()   # Set model to evaluate mode
+
+test_dataset = SimDataset_test(count = 500,transform=True)
+test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, num_workers=0)
+        
+inputs, labels = next(iter(test_loader))
+inputs = inputs.to(device)
+labels = labels.to(device)
+
+pred = model(inputs)
+q=pred[3]
+pred_mean = q.data.cpu().numpy()
+
+input_images = [x for x in inputs.cpu()]
+label_im = [x for x in labels.cpu().numpy()]
+
+
+for i in range(len(input_images)):
+   
+    fig, ax = plt.subplots(figsize=(20, 20), nrows=2, ncols=3)
+    ax[0,0].imshow(input_images[i][0,:,:])
+    A= np.swapaxes(label_im[i][:,:,:],0,2)
+    A=np.swapaxes(A,0,1)
+    ax[0,1].imshow(A)
+    mean = pred_mean[i]
+    maxim = np.amax(mean,axis=0)
+    mean[mean<maxim]=0 
+    mean[mean>=maxim]=1
+    
+    ax[0,2].imshow(mean[0,:,:])
+    ax[1,0].imshow(mean[1,:,:])
+    ax[1,1].imshow(mean[2,:,:])
+    A = np.swapaxes(mean,0,2)
+    A=np.swapaxes(A,0,1)
+    ax[1,2].imshow(A)
+    
+    mean[mean>0.7]=1
+    mean[mean<=0.7]=0
+    
+    bb = clean_art(label_im[i][1,:,:],label_im[i][0,:,:])
+    
+    score1 = score(label_im[i][1,:,:].flatten(),mean[1,:,:].flatten())
+    score2 = score(label_im[i][0,:,:].flatten(),mean[0,:,:].flatten())
+
+    print('f1: soma, proc',score1,score2)
+    
+    score1 = score((label_im[i][1,:,:]*bb).flatten(),mean[1,:,:].flatten())
+    score2 = score((label_im[i][0,:,:]*bb).flatten(),mean[0,:,:].flatten())
+    print('f1 with clean artifacts: soma, proc',score1,score2)
+  
+    plt.savefig('/home/jbonato/Documents/U-Net/plot/Small'+str(num)+'_'+str(i)+'.png')
+    
