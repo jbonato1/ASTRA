@@ -64,7 +64,7 @@ model_n = 'dense_up'
 parallel_n = True
 data_dir = '/media/DATA/jbonato/astro_segm/set2/train_single'
 workers = 1
-epochs = 15
+epochs = 4
 batch_size = 3
 lr = 1e-4
 parallel = True
@@ -296,7 +296,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 model = model_dict[model_n]
 print(10*'-','\n','MODEL',str(model_n))
 ct=0
-if model == 'dense_up':
+if model_n == 'dense_up':
     #for child in model.children():
     for child in model.children():
         if ct>1 and ct<5:

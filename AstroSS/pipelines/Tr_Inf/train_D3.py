@@ -16,7 +16,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 import torch.nn as nn
 from collections import defaultdict
-
+import argparse 
 import time
 import copy
  
@@ -24,7 +24,8 @@ import copy
 # ##################import modules
 sys.path.insert(0,'/media/DATA/jbonato/astro_segm/AstroSS/modules/')
 from aug_images import compose_tr
-
+from model.dense_up import dense_up
+from train_mod_single_cl import train_model
 
 parser = argparse.ArgumentParser(description ='Training set up' )
 # parser.add_argument('-m','--model',default ='Unet_nest_5',choices=['UNet','Unet_nest_5','nestedUNetUp5_dense','dense_up'], help='model name (default:Unet_nest_5)')
@@ -61,11 +62,12 @@ model_n = 'dense_up'
 parallel_n = True
 data_dir = '/media/DATA/jbonato/astro_segm/set3/train_single'
 workers = 1
-epochs = 15
-batch_size = 3
+epochs = 5
+batch_size = 60
 lr = 1e-4
 parallel = True
 test_folders = args.test_folder_str
+use_visdom= True
 #image size: this value must be divisible for 2^4 i.e. 98, 128,256,512
 N=48
 M=48
@@ -113,7 +115,8 @@ for item in items:
         
         back = np.ones((N,M),dtype=np.int64)-soma_mask
         back[back<0]=0
-        mask = np.concatenate((soma_mask[:,:,np.newaxis],back[:,:,np.newaxis]),axis=2).astype(np.float32)
+        Pzero = np.zeros_like(soma_mask)
+        mask = np.concatenate((Pzero[:,:,np.newaxis],soma_mask[:,:,np.newaxis],back[:,:,np.newaxis]),axis=2).astype(np.float32)
         
         if flag:
             label = mask
@@ -137,7 +140,7 @@ out_im_val = out_im[NN:,:,:,:]
 #tr im
 out_im =out_im[:NN,:,:,:]
 #val labels
-label_val =label[NN:,:,:,:]
+label_val =label[NN:,1:,:,:]
 #tr labels
 label =label[:NN,:,:,:]
 
@@ -162,18 +165,18 @@ param_persp ={
     }
 #optic
 param_pin = {
-     'pin_fact': -0.5 
+     'pin_fact': 5 
 }
 param_bar = {
-    'bar_fact': 0.8
+    'bar_fact': -2
 }
 ##elastic spec:
-param_el = {
-    'alpha': N*0.3,
-    'sigma': N*0.08,
-    'alpha_affine': N*0.08,
-    'iteration':2
-}
+# param_el = {
+#     'alpha': N*0.3,
+#     'sigma': N*0.08,
+#     'alpha_affine': N*0.08,
+#     'iteration':2
+# }
 ########################################################################
 #Dict for augmentation
 ########################################################################
@@ -191,7 +194,7 @@ augmenters_dict = {
     'scal_int2':[1],
     'optic_pin':[1,param_pin],
     'optic_bar':[1,param_bar],
-    'elastic':[param_el['iteration'],param_el]
+    #'elastic':[param_el['iteration'],param_el]
     }
 
 foo_list = compose_tr(augmenters_dict)
@@ -205,11 +208,11 @@ print(n_transf)
 def fun (i,N,M,n_tr,foolist):
     
     foolambda = lambda a,b,foolist : [x(a,b) for x in foolist]
-    sample = np.empty((n_tr,3,N,M))
+    sample = np.empty((n_tr,4,N,M))
     
-    buff =label[i,0,:,:]
+ 
+    k = foolambda(out_im[i,0,:,:],np.dstack((label[i,0,:,:],label[i,1,:,:])),foolist)
     
-    k = foolambda(out_im[i,0,:,:],buff[:,:,np.newaxis],foolist)
     c_ind = 0
     for j in range(len(k)):
         disc = k[j][0].shape
@@ -233,7 +236,7 @@ rank,batch,ch,N,M = list_samples.shape
 list_samples = list_samples.reshape(rank*batch,ch,N,M)
 
 out_im = np.vstack((out_im,list_samples[:,0,:,:][:,np.newaxis,:,:]))
-label = np.vstack((label,list_samples[:,1:,:,:]))
+label = np.vstack((label[:,1:,:,:],list_samples[:,2:,:,:]))
 label[label<0.2]=0.0
 label[label>=0.2]=1.0
 
@@ -278,7 +281,7 @@ else:
     batch_size =batch_size
 
 dataloaders = {
-    'train': DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1)
+    'train': DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=1),
     'val': DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=1)
 }
 
@@ -293,7 +296,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 model = model_dict[model_n]
 print(10*'-','\n','MODEL',str(model_n))
 ct=0
-if model == 'dense_up':
+if model_n == 'dense_up':
     #for child in model.children():
     for child in model.children():
         if ct>1 and ct<5:
@@ -319,27 +322,27 @@ optimizer_ft = optim.Adam(model.parameters(), lr=lr)
 exp_lr_scheduler = lr_scheduler.MultiStepLR(optimizer_ft, milestones=[6,30], gamma=0.1)
 
 
-model,loss_val,_,_ = train_model(model, optimizer_ft, exp_lr_scheduler, num_epochs=epochs-3,\\
-                                 dataloaders=dataloaders,device=device,single_loss=single_loss,\\
-                                 use_visdom=use_visdom)
-
+# model,loss_val = train_model(model, optimizer_ft, exp_lr_scheduler, num_epochs=epochs-3,\
+#                                  dataloaders=dataloaders,device=device,single_loss=single_loss,\
+#                                  use_visdom=use_visdom)
+loss_val=  1000
 
 if model_n == 'dense_up':
     ct=0
     #for child in model.children():
     for child in model.module.children():
         if ct>1 and ct<5:
-            print('freezing child', ct)
+            print('Unlock child', ct)
             for params in child.parameters():
                 params.requires_grad=True
         ct += 1
 
-    optimizer_ft = optim.Adam(model.parameters(), lr=(0.05*args.learning_rate))
+    optimizer_ft = optim.Adam(model.parameters(), lr=(0.05*lr))
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=200, gamma=0.1)
-    
-    model,loss_val,_,_ = train_model(model, optimizer_ft, exp_lr_scheduler,num_epochs=3,\\
-                                     best_loss=loss_val,dataloaders=dataloaders,device=device,\\
-                                     single_loss=single_loss,use_visdom)
+                                    
+    model,loss_val = train_model(model, optimizer_ft, exp_lr_scheduler,num_epochs=3,\
+                                     best_loss=loss_val,dataloaders=dataloaders,device=device,\
+                                     single_loss=single_loss,use_visdom = use_visdom)
 
 qq =  model.module.state_dict()
 for k, v in qq.items():

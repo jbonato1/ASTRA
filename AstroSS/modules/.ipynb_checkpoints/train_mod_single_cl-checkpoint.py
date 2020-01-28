@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 from collections import defaultdict
 import numpy as np
-#import faulthandler
-#faulthandler.enable()
+
+
 
 #Loss
 def dice_loss(prediction, tar, smooth = .5):
@@ -41,20 +41,20 @@ def calc_loss(pred, target, metrics,crit,flag_dice=True, bce_weight=0.5):
    #     plt.show()
     bce = crit(pred, target[:,:,:,:])
     
-    dice1 = dice_loss(pred[:,0,:,:], target[:,0,:,:])
-    dice2 = dice_loss(pred[:,1,:,:], target[:,1,:,:])
+    dice = dice_loss(pred[:,0,:,:], target[:,0,:,:])
+    
     if flag_dice: 
-        loss = bce* bce_weight + (dice2+dice1)
+        loss = bce* bce_weight + (dice)
         metrics['bce'] += bce.data.cpu().numpy() * target.size(0)
-        metrics['dice'] += (dice2+dice1).data.cpu().numpy() * target.size(0) 
+        metrics['dice'] += (dice).data.cpu().numpy() * target.size(0) 
         metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
         #metrics['f1'] += f1_s* target.size(0)
         #metrics['f1_p'] += f1_p* target.size(0)
-        del  bce, dice1, dice2#,maxim,buff, f1_s
+        del  bce, dice#,maxim,buff, f1_s
     else:
         loss = dice2+dice1
         metrics['bce'] += 0#bce.data.cpu().numpy() * target.size(0)
-        metrics['dice'] +=(dice2+dice1).data.cpu().numpy() * target.size(0) 
+        metrics['dice'] +=(dice).data.cpu().numpy() * target.size(0) 
         metrics['loss'] += loss.data.cpu().numpy() * target.size(0)
     return loss
 
@@ -104,9 +104,9 @@ def train_model(model, optimizer, scheduler,dataloaders,device,flag_dice=True, n
         # Each epoch has a training and validation phase
         for phase in ['train', 'val']:
             if phase == 'train':
-                #scheduler.step()
-                #for param_group in optimizer.param_groups:
-                #    print("LR", param_group['lr'])
+#                 scheduler.step()
+#                 for param_group in optimizer.param_groups:
+#                     print("LR", param_group['lr'])
                     
                 model.train()  # Set model to training mode
             else:
@@ -114,14 +114,12 @@ def train_model(model, optimizer, scheduler,dataloaders,device,flag_dice=True, n
 
             metrics = defaultdict(float)
             epoch_samples = 0
-
-            #print('first', torch.cuda.max_memory_allocated(),torch.cuda.max_memory_cached())
             for inputs, labels in dataloaders[phase]:
 
                 torch.cuda.empty_cache()
                 inputs = inputs.to(device)
                 labels = labels.to(device)             
-                #print('LOADED')   
+                
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
@@ -142,17 +140,14 @@ def train_model(model, optimizer, scheduler,dataloaders,device,flag_dice=True, n
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
-
+            
                 # statistics
                 epoch_samples += inputs.size(0)
-
-            #print('learning_step')
-            ###ch
+                
             if phase == 'train':
                 scheduler.step()
                 for param_group in optimizer.param_groups:
                     print("LR", param_group['lr'])
-            ###ch
             if phase == 'train':
                 loss_dict.append(metrics['loss'] / epoch_samples)
                 
@@ -195,9 +190,4 @@ def train_model(model, optimizer, scheduler,dataloaders,device,flag_dice=True, n
 
     # load best model weights
     model.load_state_dict(best_model_wts)
-
-    del best_model_wts
-    ##mod
-    loss_dict = np.asarray(loss_dict)
-    loss_dict_val = np.asarray(loss_dict_val)
-    return model, best_loss,loss_dict,loss_dict_val
+    return model, best_loss

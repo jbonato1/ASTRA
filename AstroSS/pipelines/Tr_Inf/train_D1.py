@@ -297,7 +297,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 model = model_dict[model_n]
 print(10*'-','\n','MODEL',str(model_n))
 ct=0
-if model == 'dense_up':
+if model_n == 'dense_up':
     #for child in model.children():
     for child in model.children():
         if ct>1 and ct<5:
@@ -328,22 +328,22 @@ model,loss_val,_,_ = train_model(model, optimizer_ft, exp_lr_scheduler, num_epoc
                                  use_visdom=use_visdom)
 
 
-# if model_n == 'dense_up':
-#     ct=0
-#     #for child in model.children():
-#     for child in model.module.children():
-#         if ct>1 and ct<5:
-#             print('freezing child', ct)
-#             for params in child.parameters():
-#                 params.requires_grad=True
-#         ct += 1
+if model_n == 'dense_up':
+    ct=0
+    #for child in model.children():
+    for child in model.module.children():
+        if ct>1 and ct<5:
+            print('freezing child', ct)
+            for params in child.parameters():
+                params.requires_grad=True
+        ct += 1
 
-#     optimizer_ft = optim.Adam(model.parameters(), lr=(0.05*lr))
-#     exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=200, gamma=0.1)
+    optimizer_ft = optim.Adam(model.parameters(), lr=(0.05*lr))
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=200, gamma=0.1)
     
-#     model,loss_val,_,_ = train_model(model, optimizer_ft, exp_lr_scheduler,num_epochs=3,\
-#                                      best_loss=loss_val,dataloaders=dataloaders,device=device,\
-#                                      single_loss=single_loss,use_visdom=use_visdom)
+    model,loss_val,_,_ = train_model(model, optimizer_ft, exp_lr_scheduler,num_epochs=3,\
+                                     best_loss=loss_val,dataloaders=dataloaders,device=device,\
+                                     single_loss=single_loss,use_visdom=use_visdom)
 
 qq =  model.module.state_dict()
 for k, v in qq.items():
