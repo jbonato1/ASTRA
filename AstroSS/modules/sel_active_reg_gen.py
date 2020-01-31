@@ -148,7 +148,7 @@ class sel_active_reg():
         self.mask_tot = np.empty_like(im_out)
         self.mask_tot  = im_out/cover    
           
-    def get_mask(self):
+    def get_mask(self,find_round=True):
         T,_,_ = self.stack.shape
         
         if self.gpu_flag:
@@ -159,8 +159,18 @@ class sel_active_reg():
         if self.corr_int:
             scaling = ThScal(self.stack)
 
+       
+        th_ =round(T*self.init_th_)
         
-        th_ =round(T*self.init_th_)   
+        if find_round:
+            #this is an alternative strategy to select the strating point threshold the nearest to th_, it is a seed for the while below 
+            #this strategy can be removed and th_ will be the T*self.init_th_ and not one of the seed points below
+            # we used this strategy for dataset-1, this approach reduces large variation in th_ due to small variation in self.init_th_
+            if T>500: 
+                th_list = [200,250,300,350,400,450,500,550,600,650,700]
+                th_list = np.asarray(th_list)
+                th_ref =th_list-th_
+                th_ = th_list[np.argmin(np.abs(th_ref))]
         cnt=0
         starting_th = th_
         flag_th=True

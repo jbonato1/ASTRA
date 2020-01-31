@@ -309,7 +309,7 @@ class filt_im(spatial_pp):
     def __init__(self, file_path, mask_soma,BB_dim,filt_meth='std'):
         super().__init__(file_path)
         self.BB_dim = BB_dim   
-        self.stack = stack
+        #self.stack = stack
         self.mask_soma = mask_soma
         self.coord_list,self.filt_im_zone = create_bb_coord(mask_soma,BB_dim)
         self.filt_meth = filt_meth
@@ -367,7 +367,7 @@ class filt_im(spatial_pp):
         dim = self.BB_dim
         out_dim = self.BB_dim + 2*pad
         T,N,M = self.stack.shape
-        im = self.create_im()
+        _,im = self.create_img()
         
         im_to_crop = np.empty_like(im)
         stack_to_crop = np.empty_like(self.stack)
@@ -400,7 +400,7 @@ class filt_im(spatial_pp):
             act_filt[coord[1]:coord[3],coord[0]:coord[2]] += crop_mask_filt
             #filt im and mask
             ## for non filtered version this line must be commented
-            crop_im *= crop_mask_filt
+            crop_im = crop_im*crop_mask_filt
             
             crop_im_pad = np.pad(crop_im,pad,'constant').astype(np.float32)
         

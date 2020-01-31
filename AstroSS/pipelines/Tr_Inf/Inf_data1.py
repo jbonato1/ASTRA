@@ -20,6 +20,7 @@ import cv2
 import pandas as pd
 import h5py
 import math
+import sys
 
 import argparse
 sys.path.insert(0,'/media/DATA/jbonato/astro_segm/AstroSS/modules/')
@@ -92,7 +93,7 @@ for el in list_el:
 
 N=256
 for jj in range(1,26):
-    t1 = time.time()
+   
     Res_1 = np.zeros((256,256,3))
     Res_2 = np.zeros((256,256,3))
     if jj !=20:
@@ -125,7 +126,7 @@ for jj in range(1,26):
         
         filter_ = filt_im(stack_dir + items_stack[0],mask,86)
         #filter_ = filt_im(stack,mask,jj)
-        _,image_to_plot = filter_.create_im()
+        _,image_to_plot = filter_.create_img()
         coord_l = filter_.get_instances()
         
         if len(coord_l)!=0:
@@ -216,14 +217,7 @@ for jj in range(1,26):
             input_images = [x for x in inputs.cpu()]
             del inputs,qq
             print('immgine di dim:',input_images[0].shape)
-            #label_im = [x for x in labels.cpu().numpy()]
 
-            score_arr=np.empty((len(input_images),2))
-            index_list=[]
-            onlysoma = np.zeros_like(mask_test[:,:,1])  
-            fin_mask = np.zeros_like(mask_test[:,:,1])
-            fin_mask_2 = np.zeros_like(mask_test[:,:,1])
-            #inserire un while cambiando la soglia 
             cnt_soma=0
             th_ = int((2/3)*max_min[1])
             prob_map = np.zeros((256,256,2))
@@ -234,8 +228,6 @@ for jj in range(1,26):
                 maxim = np.amax(mean,axis=0)
                 mean[mean<maxim]=0
                 coord = coord_l[i]
-                prob_map[coord[1]:coord[3],coord[0]:coord[2],0] +=mean[1,5:-5,5:-5]
-                prob_map[coord[1]:coord[3],coord[0]:coord[2],1] +=1
                 mean[mean>=maxim]=1
 
                 small_soma = small_soma_to_proc(mean[1,:,:],N = th_)
@@ -243,7 +235,7 @@ for jj in range(1,26):
                 mean[1,:,:]-=small_soma
 
                 coord = coord_l[i]
-                onlysoma[coord[1]:coord[3],coord[0]:coord[2]]+= mean[1,5:-5,5:-5] 
+                
                 Res_1[coord[1]:coord[3],coord[0]:coord[2],0] += mean[0,5:-5,5:-5]
                 Res_1[coord[1]:coord[3],coord[0]:coord[2],1] += mean[1,5:-5,5:-5]
 
@@ -266,7 +258,7 @@ for jj in range(1,26):
             Res_1[Res_1<1]=0
             Res_1[Res_1>0]=1
             
-            #remove large region classified as soma Area>500
+            #remove too large region 
             Res_1_filt,removal = art_rem_large(Res_1[:,:,1],Res_1[:,:,0],N=int(1.15*max_min[0]))
             if removal<2:
                 Res_1-=Res_1_filt[:,:,np.newaxis]

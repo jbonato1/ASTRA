@@ -4,7 +4,14 @@ This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.0. All 
 
 ## Installer
 Installer can be used to install all the fundamental packages used in AstroSS if python 3.6.7 is already installed. If you need to
-install python follow the instruction on ...
+install python run:
+
+sudo apt update
+sudo apt-get install python3.6
+sudo apt install python3-pip
+
+With file gpu_setup1.sh in folder installation, cuda packages will be downloaded and installed
+With file set_up2 all the necessary python packages will be installed and a virtual environment will be set-up
 
 
 ## Notebook
