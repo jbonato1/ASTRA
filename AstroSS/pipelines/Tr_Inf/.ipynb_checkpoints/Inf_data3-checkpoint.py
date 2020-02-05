@@ -20,6 +20,7 @@ import cv2
 import pandas as pd
 import h5py
 import math
+import sys
 
 import argparse
 sys.path.insert(0,'/media/DATA/jbonato/astro_segm/AstroSS/modules/')
@@ -41,8 +42,8 @@ model_dict={
 
 
 dict_param = {
-    'list':[i for i in range(0,390,30)],
-    'blocks':15,
+    'list':[i for i in range(0,400,30)],
+    'blocks':14*2,
     'threads':20,
     'BPM_ratio':2,
     'bb':40,
@@ -51,7 +52,7 @@ dict_param = {
     'percentile': 90,
     'pad':5,
     'astro_num':95, # number of astro min in FOV
-    'init_th':0.5, # threshold initialization approx. 125
+    'init_th_':0.5, # threshold initialization approx. 125
     'decr_dim':3, # astro area decrease
     'decr_th':12, # temporal threshold decrease
     'corr_int':True, # intensity correction flag
@@ -151,16 +152,17 @@ for jj in range(1,8):
         sp_pp = spatial_pp(stack_dir + items_stack[0])
         stack_new,image_to_plot =sp_pp.create_img_large()
         
-        a_reg = sel_active_reg(stack.astype(np.float32),dict_param)
+        a_reg = sel_active_reg(stack_new.astype(np.float32),dict_param)
         mask = a_reg.get_mask()
         
         ### generate images
         
-        filter_ = filt_im(stack_dir + items_stack[0], mask,40,filt_meth='ad_hoc'):
+        filter_ = filt_im(stack_dir + items_stack[0], mask,40,filt_meth='ad_hoc')
         
         
         coord_l = filter_.get_instances()
-        image_set,filt_image_L = filter_.save_im(pad=4)
+        image_set,filt_image_L = filter_.save_im(pad=4,case=3)
+        print('IMAGE',image_set.shape)
         if len(coord_l)!=0:
             
             image_stack = np.empty((len(coord_l),48,48))
@@ -168,7 +170,8 @@ for jj in range(1,8):
             #print('MEM',torch.cuda.memory_allocated(),torch.cuda.memory_cached())
             class SimDataset_test(Dataset):
                 def __init__(self):
-                    self.input_images = image_set[:,:,:,:]    
+                    a,b,c,d = image_set.shape
+                    self.input_images = image_set[:,0,:,:].reshape(a,1,c,d)    
                     
                 
                 def __len__(self):
@@ -228,20 +231,20 @@ for jj in range(1,8):
             Res_1[Res_1<1]=0
             Res_1[Res_1>0]=1
             
-            filt = small_roi(Res_1[:,:,0],max_min[jj-1,1])
+            filt = small_roi(Res_1[:,:,0],max_min[jj-1,1],max_min[jj-1,0])
             Res_1[:,:,0]*=filt
-            ###!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            Res_1_filt,removal = large_soma(Res_1[:,:,0],N=int(1.15*max_min[jj-1,0]))
+            ### set to 20 the limit of number of removal
+            Res_1_filt,removal = art_rem_large(Res_1[:,:,0],N=int(1.15*max_min[jj-1,0]))
             if removal<20:
                 Res_1[:,:,0]-=Res_1_filt
                 
-            Res_1_filt,removal = large_soma(Res_1[:,:,0],N=int(max_min[jj-1,0]))
+            Res_1_filt,removal = art_rem_large(Res_1[:,:,0],N=int(max_min[jj-1,0]))
             if removal<20:
                 Res_1[:,:,0]-=Res_1_filt
             
             ###
             
-            with h5py.File('/media/DATA/jbonato/astro_segm/Results/D3/Large_'+test_folder_str1+'D3.hdf5','w') as f:
+            with h5py.File('/media/DATA/jbonato/astro_segm/Results/D3/LARGE_'+test_folder_str1+'D3.hdf5','w') as f:
                         dset2 = f.create_dataset('Values_soma',data=Res_1[:,:,0])
             
 

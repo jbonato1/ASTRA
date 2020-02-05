@@ -180,13 +180,17 @@ def large_soma(mask,N):
     mask_tot=labels
     return mask_tot
 
-def art_rem_large(soma,proc,N=300):
+def art_rem_large(soma,proc=None,N=300):
     cnt=0
     soma_l = large_soma(soma,N)
-    ret_m, labels_m = cv2.connectedComponents(np.uint8(soma+proc))
-    mask_fin = np.zeros((256,256))
+    N,M = soma.shape
+    if proc is None:
+        ret_m, labels_m = cv2.connectedComponents(np.uint8(soma))
+    else:
+        ret_m, labels_m = cv2.connectedComponents(np.uint8(soma+proc))
+    mask_fin = np.zeros((N,M))
     for i in range(1, ret_m):
-        mask_buff = np.zeros((256,256))
+        mask_buff = np.zeros((N,M))
         
         pts_m = np.where(labels_m==i)
         mask_buff[pts_m]=1

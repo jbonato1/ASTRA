@@ -13,7 +13,7 @@ from numba import cuda,float32,uint16,float64
 class ThScal():
     def __init__(self,stack):
         kernel = np.ones((50,50),np.float32)/(50*50)
-        density = cv2.filter2D(np.median(stack_new,axis=0),-1,kernel)
+        density = cv2.filter2D(np.median(stack,axis=0),-1,kernel)
         self.density = density/np.amax(density)
         
     def ThMat(self,ff,th_):
@@ -22,7 +22,7 @@ class ThScal():
         
         cnt=1
         for i in [0.6,0.4,0.2,0]:
-            buff = density.copy()
+            buff = self.density.copy()
             buff[buff<i]=0
             buff[buff>=i+0.2]=0
             buff[buff>0]=1
@@ -155,7 +155,7 @@ class sel_active_reg():
         cover = cover_g.copy_to_host()
         self.mask_tot = np.empty_like(im_out)
         self.mask_tot  = im_out/cover 
-        print('qqqq',np.sum(self.mask_tot))
+        print('qqqq',im_out.max(),im_out.min(),cover.max(),cover.min())
           
     def get_mask(self,find_round=True):
         T,_,_ = self.stack.shape
@@ -191,7 +191,8 @@ class sel_active_reg():
                 mask_tot_s = np.sum(self.mask_tot,axis=0)
 
                 if self.corr_int:
-                     mask_tot_s = scaling.ThMat(mask_tot_s,th_)
+                    mask_tot_s = scaling.ThMat(mask_tot_s,th_)
+                    mask_tot_s= np.uint8(mask_tot_s)
                 else:
                     mask_tot_s[mask_tot_s<=th_]=0
                     mask_tot_s[mask_tot_s>0.5]=255

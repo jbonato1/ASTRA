@@ -77,6 +77,7 @@ def create_bb_coord(soma_mask,BB_dim):
         print(coord)
         coord_list.append(coord)
     filt_im_zone[filt_im_zone>0]=1
+    print(len(coord_list))
     return coord_list,filt_im_zone
 
 ############################################### TRAINING PP
