@@ -22,8 +22,8 @@ import h5py
 import math
 
 import argparse
-
-import argparse
+import sys
+import glob
 sys.path.insert(0,'/media/DATA/jbonato/astro_segm/AstroSS/modules/')
 
 from test_fun import *
@@ -87,7 +87,7 @@ def prob_calc(prob_map,max_a,min_a,conv):
     print('ssss',ret-1)
     for i in range(1,ret):
         pts = np.where(labels==i)
-        if len(pts[0])*conv>(0.9*min_a*(0.144*0.144)) and len(pts[0])*conv<(1.15*max_a*(0.144*0.144)):
+        if len(pts[0])*conv>(0.9*min_a*(0.144*0.144)) and len(pts[0])*conv<(1.15*max_a*(0.144*0.144)): #0.144 is the mean um/pixel in the dataset
             
             q = np.around(np.sum(prob_map[pts])/len(pts[0]),decimals=2)
             cv2.putText(prob_map,str(q), (int(np.mean(pts[1])),int(np.mean(pts[0]))), font, 0.4, (2,0,0), 1, cv2.LINE_AA)
@@ -103,9 +103,33 @@ def prob_calc(prob_map,max_a,min_a,conv):
             
     return prob_map,map_
 
+def common_merge(sm_fr,sm_ent):
+    ret, labels = cv2.connectedComponents(np.uint8(sm_fr))
+    ret1, labels1 = cv2.connectedComponents(np.uint8(sm_ent))
+    
+    merge = np.zeros((256,256))
+    
+    for i in range(1, ret):
+        pts =  np.where(labels == i)
+        mask_tmp = np.zeros((256,256))
+        mask_tmp[pts]=1
+        for j in range(1, ret1):
+            pts1 = np.where(labels1 == j)
+            mask_tmp1 = np.zeros((256,256))
+            mask_tmp1[pts1]=1
+            if len(pts1[0])>len(pts[0]):
+                ref = len(pts[0])
+            else:
+                ref = len(pts1[0])
+            if np.sum(mask_tmp*mask_tmp1)>0.1*ref:
+                merge+=mask_tmp
+                merge+=mask_tmp1
+    
+    merge[merge>1]=1
+    return merge
 
 
-val_a = np.loadtxt('/media/DATA/jbonato/segm_project/U-net/data2.csv',delimiter=',')
+val_a = np.loadtxt('/media/DATA/jbonato/astro_segm/AstroSS/pipelines/data2.csv',delimiter=',')
 conv_l = [0.146484,0.146484,0.130208,0.146484,0.195312,0.146484,0.146484,0.130208,0.130208,0.130208,0.146484,0.130208,0.146484,0.167411,0.146484,0.130208,0.167411,0.146484,0.130208,0.130208,0.146484,0.130208,0.146484,0.146484,0.146484]
 
 dict_area = dict()
@@ -132,7 +156,7 @@ for jj in range(26,51):
         else:
             test_folder_str1='0'+test_folder_str
         
-        model.load_state_dict(torch.load('/media/DATA/jbonato/astro_segm/weights/'+args.model+test_folder_str1+'D2.pt'))
+        model.load_state_dict(torch.load('/media/DATA/jbonato/segm_project/weights/'+args.model+test_folder_str1+'_256_nopp.pt'))#/media/DATA/jbonato/astro_segm/weights/'+args.model+test_folder_str1+'D2.pt'))
         
         print('FOV',test_folder_str,args.model+test_folder_str1)
         #collect stack to analyze
@@ -152,13 +176,15 @@ for jj in range(26,51):
         ################################
         sp_pp = spatial_pp(path_stack[0])
         stack,image_to_plot = sp_pp.create_img_d2()        
-        a_reg = sel_active_reg(stack.astype(np.float32),dict_param)
+        a_reg = sel_active_reg(stack.astype(np.float32),dict_param,static=True)
         mask = a_reg.get_mask()
         
         
         filt = filt_im(path_stack[0],mask,192)
         coord_l = filt.get_instances()
-        image_stack, mask_filtering = filt.save_im()
+        image_stack, mask_filtering = filt.save_im(pad=0,stack=stack,case=2)
+        
+        print(mask.shape,image_stack.shape,mask_filtering.shape)
         ###################################
         
         if len(coord_l)!=0:
@@ -200,11 +226,9 @@ for jj in range(26,51):
             mean = pred_mean[0]
             maxim = np.amax(mean,axis=0)
             mean[mean<maxim]=0
-
-            _,sm_filt = prob_calc(mean[1,:,:],\
-                                  dict_area[str(jj)][0],\
-                                  dict_area[str(jj)][1],\
-                                  dict_area[str(jj)+'conv'])
+            
+            _,sm_filt = prob_calc(mean[1,:,:],dict_area[str(jj)][0],dict_area[str(jj)][1],dict_area[str(jj)+'conv'])
+ 
 
             ##################################
             image_set = image_stack[:,0,:,:]
@@ -243,14 +267,9 @@ for jj in range(26,51):
             del inputs,qq
             print('immgine di dim:',input_images[0].shape)
            
-            score_arr=np.empty((len(input_images),2))
-            index_list=[]
-            onlysoma = np.zeros_like(mask_test[:,:,1])  
-            fin_mask = np.zeros_like(mask_test[:,:,1])
-            fin_mask_2 = np.zeros_like(mask_test[:,:,1])
             
 
-            
+            th_ = 300#int((2/3)*max_min[1])
             for i in range(len(input_images)):
                 mean= np.zeros((3,96,96))
                 mean = pred_mean[i].copy()
@@ -263,27 +282,24 @@ for jj in range(26,51):
                 mean[1,:,:]-=small_soma
 
                 coord = coord_l[i]
-                onlysoma[coord[1]:coord[3],coord[0]:coord[2]]+= mean[1,:,:] 
-
                 Res_1[coord[1]:coord[3],coord[0]:coord[2],0] += mean[0,:,:]
                 Res_1[coord[1]:coord[3],coord[0]:coord[2],1] += mean[1,:,:]
                      
-                Res_1[:,:,0] -= Res_1[:,:,1]
-                Res_1[Res_1<1]=0
-                Res_1[Res_1>0]=1
-                
-                
-                soma_f = common_merge(Res_1[:,:,1],sm_filt)
-                Res_1[:,:,1]=soma_f
-                
-                Res_1_filt = art_rem(Res_1[:,:,1],Res_1[:,:,0])
-                Res_1_bis = Res_1*Res_1_filt[:,:,np.newaxis]
-                
-                filt = dilation_fun(Res_1_bis[:,:,0]+Res_1_bis[:,:,1],Res_1[:,:,0])
-                filt = art_rem(Res_1[:,:,1],filt)
-                Res_1*=filt[:,:,np.newaxis]
-                
+            Res_1[:,:,0] -= Res_1[:,:,1]
+            Res_1[Res_1<1]=0
+            Res_1[Res_1>0]=1
 
+                
+            soma_f = common_merge(Res_1[:,:,1],sm_filt)
+            Res_1[:,:,1]=soma_f
+
+            Res_1_filt = art_rem(Res_1[:,:,1],Res_1[:,:,0])
+            Res_1_bis = Res_1*Res_1_filt[:,:,np.newaxis]
+
+            filt = dilation_fun(Res_1_bis[:,:,0]+Res_1_bis[:,:,1],Res_1[:,:,0])
+            filt = art_rem(Res_1[:,:,1],filt)
+            Res_1*=filt[:,:,np.newaxis]
+            
 
             Res_1[:,:,0] -= Res_1[:,:,1]
             Res_1[Res_1<1]=0

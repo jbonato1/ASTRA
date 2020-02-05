@@ -53,7 +53,7 @@ def sel_active_gpu(T,per_mat,stack,im_out,cover,BPM_ratio,stp):
 
 class sel_active_reg():
     
-    def __init__(self,stack,dict_params,verbose=True):
+    def __init__(self,stack,dict_params,verbose=True,static=False):
         self.stack = stack
         self.step_list = dict_params['list']
         if len(self.step_list)==1:
@@ -74,6 +74,7 @@ class sel_active_reg():
         self.decr_th = dict_params['decr_th']
         self.corr_int = dict_params['corr_int']
         self.gpu_flag = dict_params['gpu_flag']
+        self.static = static
         self.verbose = verbose
         
     @staticmethod
@@ -133,20 +134,28 @@ class sel_active_reg():
 
         threadsperblock = (self.threads,self.threads)
         blockspergrid = (self.blocks,self.blocks)
+        
         # compute percentile in patches
-        percent_list = Parallel(n_jobs=10)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
-        percentiles = np.asarray(percent_list)
-        mat_per = percentiles[:,:-1,:]
+        if not(self.static):
+            percent_list = Parallel(n_jobs=10)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
+            percentiles = np.asarray(percent_list)
+            mat_per = percentiles[:,:-1,:]
 
-        mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]# reorder the embarasing parallel collection of mat
-
+            mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]# reorder the embarasing parallel collection of mat
+            
+        #### mod for static fluorophore
+        # compute a single percentile for all the stack, and than generate a T x num_patch x num_patch 
+        elif self.static:
+            mat_per = np.percentile(self.stack.flatten(),self.per_tile).reshape(1,1)
+            mat_per = np.tile(mat_per,(T,1,1))
         ### allocate percentile matrix
         mat_per_g = cuda.to_device(mat_per)    
         sel_active_gpu[blockspergrid, threadsperblock](T,mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp)
         im_out = im_out_g.copy_to_host()
         cover = cover_g.copy_to_host()
         self.mask_tot = np.empty_like(im_out)
-        self.mask_tot  = im_out/cover    
+        self.mask_tot  = im_out/cover 
+        print('qqqq',np.sum(self.mask_tot))
           
     def get_mask(self,find_round=True):
         T,_,_ = self.stack.shape
@@ -172,6 +181,7 @@ class sel_active_reg():
                 th_ref =th_list-th_
                 th_ = th_list[np.argmin(np.abs(th_ref))]
         cnt=0
+        print(th_)
         starting_th = th_
         flag_th=True
         N_pix = self.N_pix_st
@@ -222,7 +232,6 @@ class sel_active_reg():
                 labels[pts]=0
         labels[labels>0]=1
         return labels
-
 
 
 

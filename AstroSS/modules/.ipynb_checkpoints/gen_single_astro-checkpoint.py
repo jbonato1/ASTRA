@@ -37,7 +37,7 @@ def create_bb_coord(soma_mask,BB_dim):
         Mom = cv2.moments(c)
         cX = int(Mom["m10"] / Mom["m00"])
         cY = int(Mom["m01"] / Mom["m00"])
-        
+        print(cX,cY)
         cv2.circle(filt_,(cX,cY),43,255,thickness = -1,lineType=8)
         filt_im_zone[:,:,cnt]=filt_
         cnt+=1
@@ -74,6 +74,7 @@ def create_bb_coord(soma_mask,BB_dim):
             c2y=N
         
         coord = np.array([c1x,c1y,c2x,c2y])
+        print(coord)
         coord_list.append(coord)
     filt_im_zone[filt_im_zone>0]=1
     return coord_list,filt_im_zone
@@ -363,12 +364,21 @@ class filt_im(spatial_pp):
 
         return mask
     
-    def save_im(self,pad=5):
+    def save_im(self,pad=5,stack=None,case=1):
+        if not(stack is None):
+            self.stack = stack
+        
         dim = self.BB_dim
         out_dim = self.BB_dim + 2*pad
+        print(out_dim)
         T,N,M = self.stack.shape
-        _,im = self.create_img()
-        
+        if case==1:
+            _,im = self.create_img()
+        elif case==2:
+            _,im = self.create_img_d2()
+        elif case==3:
+            _,im = self.create_img_large()
+            
         im_to_crop = np.empty_like(im)
         stack_to_crop = np.empty_like(self.stack)
         crop_stack = np.empty((T,dim,dim))
@@ -411,6 +421,7 @@ class filt_im(spatial_pp):
             counter+=1
             
         act_filt[act_filt>1]=1
+        print('AA',np.sum(act_filt))
         return out_stack,act_filt
     
 

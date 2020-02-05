@@ -118,8 +118,8 @@ for item in items:
         values_soma = values_soma.astype(np.float32)
         
                                             #resize
-        values = cv2.resize(np.uint8(values),(256,256),interpolation=cv2.INTER_AREA) 
-        values_soma = cv2.resize(np.uint8(values_soma),(256,256),interpolation=cv2.INTER_AREA)
+        valuesR = cv2.resize(np.uint8(values),(256,256),interpolation=cv2.INTER_AREA) 
+        values_somaR = cv2.resize(np.uint8(values_soma),(256,256),interpolation=cv2.INTER_AREA)
         ###########################################################################################
         
         for image_id in image_ids:
@@ -139,10 +139,13 @@ for item in items:
                 im_enh_l.append(im_enh)
                 
                 #save unfiltered mask
+                with h5py.File(folder_to_save +zer+item+'_nfR.hdf5','w') as f:
+                    dset = f.create_dataset('Values',data=valuesR)
+                    dset2 = f.create_dataset('Values_soma',data=values_somaR)
                 with h5py.File(folder_to_save +zer+item+'_nf.hdf5','w') as f:
                     dset = f.create_dataset('Values',data=values)
                     dset2 = f.create_dataset('Values_soma',data=values_soma)
                 #SINGLE CELL CREATION   
-                values,values_soma =  save_im(im=im_enh,stack=stack,mask_soma=values_soma,mask_proc=values,\
+                values,values_soma =  save_im(im=im_enh,stack=stack,mask_soma=values_somaR,mask_proc=valuesR,\
                                               save_folder = folder_single+zer+item,item=int(item),\
                                               BB_dim=192,th1_p=th1_p,th2_p=th2_p,pad=0)
