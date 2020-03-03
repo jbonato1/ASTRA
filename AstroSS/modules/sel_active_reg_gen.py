@@ -155,7 +155,7 @@ class sel_active_reg():
         cover = cover_g.copy_to_host()
         self.mask_tot = np.empty_like(im_out)
         self.mask_tot  = im_out/cover 
-        print('qqqq',im_out.max(),im_out.min(),cover.max(),cover.min())
+        #print('qqqq',im_out.max(),im_out.min(),cover.max(),cover.min())
           
     def get_mask(self,find_round=True):
         T,_,_ = self.stack.shape
@@ -181,7 +181,7 @@ class sel_active_reg():
                 th_ref =th_list-th_
                 th_ = th_list[np.argmin(np.abs(th_ref))]
         cnt=0
-        print(th_)
+        #print(th_)
         starting_th = th_
         flag_th=True
         N_pix = self.N_pix_st

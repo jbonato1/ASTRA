@@ -115,7 +115,7 @@ model = model.to(device)
 N=430
 max_min = np.loadtxt('/media/DATA/jbonato/astro_segm/AstroSS/pipelines/data3.csv',delimiter=',')
 
-for jj in range(1,8):
+for jj in range(6,7):
 
     Res_1 = np.zeros((430,430,2))
     
@@ -127,7 +127,7 @@ for jj in range(1,8):
             test_folder_str1='0'+test_folder_str
         
     
-        model.load_state_dict(torch.load('/media/DATA/jbonato/astro_segm/weights/'+args.model+test_folder_str1+'D3.pt'))
+        model.load_state_dict(torch.load('/media/DATA/jbonato/segm_project/weights/dense_up006large_rdata1.pt'))#'/media/DATA/jbonato/astro_segm/weights/'+args.model+test_folder_str1+'D3.pt'))
         
         
         

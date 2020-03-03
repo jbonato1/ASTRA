@@ -37,7 +37,7 @@ def create_bb_coord(soma_mask,BB_dim):
         Mom = cv2.moments(c)
         cX = int(Mom["m10"] / Mom["m00"])
         cY = int(Mom["m01"] / Mom["m00"])
-        print(cX,cY)
+        #print(cX,cY)
         cv2.circle(filt_,(cX,cY),43,255,thickness = -1,lineType=8)
         filt_im_zone[:,:,cnt]=filt_
         cnt+=1
@@ -74,10 +74,10 @@ def create_bb_coord(soma_mask,BB_dim):
             c2y=N
         
         coord = np.array([c1x,c1y,c2x,c2y])
-        print(coord)
+        #print(coord)
         coord_list.append(coord)
     filt_im_zone[filt_im_zone>0]=1
-    print(len(coord_list))
+    #print(len(coord_list))
     return coord_list,filt_im_zone
 
 ############################################### TRAINING PP
@@ -371,7 +371,7 @@ class filt_im(spatial_pp):
         
         dim = self.BB_dim
         out_dim = self.BB_dim + 2*pad
-        print(out_dim)
+        #print(out_dim)
         T,N,M = self.stack.shape
         if case==1:
             _,im = self.create_img()
@@ -422,7 +422,7 @@ class filt_im(spatial_pp):
             counter+=1
             
         act_filt[act_filt>1]=1
-        print('AA',np.sum(act_filt))
+        #print('AA',np.sum(act_filt))
         return out_stack,act_filt
     
 
