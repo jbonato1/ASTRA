@@ -1,6 +1,6 @@
 # astrocyte_segmentation
 
-This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.0. All the packages are listed in the requirements.txt
+This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All the packages are listed in the requirements.txt
 
 ## Installer
 Installer can be used to install all the fundamental packages used in AstroSS if python 3.6.7 is already installed. If you need to
