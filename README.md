@@ -1,4 +1,9 @@
 # Astrocyte Segmentation Project
+We developed Astro3S, a novel software for astrocyte spatiotemporal semantic segmentation, which combines deep learning algorithms
+with features engineering of calcium data and operates without human intervention. Astro3S performs fast and precise identification 
+of astrocytic cell somata, processes, and cellular domains showing correlated calcium dynamic. 
+
+<img src="github_images/D1_cc_.png" alt="My cool logo"/>
 
 This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All the packages are listed in the requirements.txt
 
@@ -7,9 +12,9 @@ This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All 
 Installer can be used to install all the fundamental packages used in AstroSS if python 3.6.7 is already installed. If you need to
 install python run:
 
-sudo apt update
-sudo apt-get install python3.6
-sudo apt install python3-pip
+- sudo apt update
+- sudo apt-get install python3.6
+- sudo apt install python3-pip
 
 With file gpu_setup1.sh in folder installation, cuda packages will be downloaded and installed
 With file set_up2 all the necessary python packages will be installed and a virtual environment will be set-up
