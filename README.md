@@ -68,13 +68,13 @@ In this folder there are pipelines used to perform experiments described in the 
 
 ## Zip_mask
 
-- GT:In this folder there are the consunsus manual annotations of each dataset
-- User_1: in this folder there are the Annotator-1 manual annotations of each dataset
-- User_2: in this folder there are the Annotator-2 manual annotations of each dataset
-- User_3:in this folder there are the Annotator-3 manual annotations of each dataset
+- consensus:In this folder there are the consunsus manual annotations of each dataset
+- annot_1: in this folder there are the Annotator-1 manual annotations of each dataset
+- annot_2: in this folder there are the Annotator-2 manual annotations of each dataset
+- annot_3:in this folder there are the Annotator-3 manual annotations of each dataset
 
 ## set 
 In this folder there is the script to download each dataset and organize datasets in different folders
 
 ## weights
-In this folder There is a scripts that can be used to download DNN weights used for benchmarking Astro3S
+In this folder there is a script to download DNN weights used for benchmarking Astro3S
