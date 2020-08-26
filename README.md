@@ -11,11 +11,11 @@ During training pipeline Astro3S hyperparameters are optimized on the training s
 human supervision from Astro3S inference pipeline.The inference pipeline comprises three main blocks - pre-processing, semantic segmentation, 
 and subcellular cross-correlation analysis - allowing an unbiased end-to-end characterization of the complex morphological and dynamical properties of astrocytes.  
 
-<img src="github_images/D1_pp_st_.png" alt="Pre-proc"/>
+<img src="github_images/D1_pp_st.png" alt="Pre-proc"/>
 
-| col 1      | col 2      | 
+| Semantic Segmentation      | Details of a single cell      | 
 |------------|-------------| 
-|  <img src="github_images/D1_sampleA.png" width="250"> |  <img src="github_images/D1_sampleA.png" width="125"> |
+|  <img src="github_images/D1_sampleA.png" width="500"> |  <img src="github_images/D1_sampleB.png" width="250"> |
 
 <img src="github_images/D1_cc_.png" alt="Cross_corr"/>
 
