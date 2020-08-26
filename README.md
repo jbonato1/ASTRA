@@ -3,7 +3,21 @@ We developed Astro3S, a novel software for astrocyte spatiotemporal semantic seg
 with features engineering of calcium data and operates without human intervention. Astro3S performs fast and precise identification 
 of astrocytic cell somata, processes, and cellular domains showing correlated calcium dynamic. 
 
-<img src="github_images/D1_cc_.png" alt="My cool logo"/>
+## Astro3S: Astrocyte Spatiotemporal Semantic Segmentation using machine learning techniques
+Astro3S is a software that employs a combination of supervised and unsupervised techniques providing a fully automatic pipeline for 
+the analysis spatiotemporal information of brain astrocytes. This software is composed by 2 pipelines named training and inference (Fig. 1A).
+
+During training pipeline Astro3S hyperparameters are optimized on the training set pre-processed. Thanks to this optimization we removed any 
+human supervision from Astro3S inference pipeline.The inference pipeline comprises three main blocks - pre-processing, semantic segmentation, 
+and subcellular cross-correlation analysis - allowing an unbiased end-to-end characterization of the complex morphological and dynamical properties of astrocytes.  
+
+<img src="github_images/D1_pp_st_.png" alt="Pre-proc"/>
+
+| col 1      | col 2      | 
+|------------|-------------| 
+|  <img src="github_images/D1_sampleA.png" width="250"> |  <img src="github_images/D1_sampleA.png" width="125"> |
+
+<img src="github_images/D1_cc_.png" alt="Cross_corr"/>
 
 This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All the packages are listed in the requirements.txt
 
