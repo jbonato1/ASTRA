@@ -7,7 +7,7 @@ of astrocytic cell somata, processes, and cellular domains showing correlated ca
 Astro3S is a software that employs a combination of supervised and unsupervised techniques providing a fully automatic pipeline for 
 the analysis spatiotemporal information of brain astrocytes. This software is composed by 2 pipelines named training and inference.
 
-<img src="github_images/test_train.png" alt="Pipelines"/>
+<div style="text-align:center"><img src="github_images/test_train.png" alt="Pipelines"/>
 
 During training pipeline Astro3S hyperparameters are optimized on the training set pre-processed. Thanks to this optimization we removed any 
 human supervision from Astro3S inference pipeline.The inference pipeline comprises three main blocks - pre-processing, semantic segmentation, 
