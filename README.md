@@ -42,8 +42,25 @@ With file set_up2 all the necessary python packages will be installed and a virt
 ## Nvidia-Docker (recommended) 
 We have written a Dockerfile to use our software on nvida-docker and skip the manual installation of each package. 
 - Install nvidia-docker if you have not installed it on your machine. Follow instructions at https://github.com/NVIDIA/nvidia-docker
-- docker pull nvidia/cuda:10.1-runtime-ubuntu18.04
-- run docker -t astro_segm:1.0 build . 
+- run: "docker pull nvidia/cuda:10.1-runtime-ubuntu18.04"
+- run: "docker build -t astro_segm:1.0 ."
+
+### Attention: if your docker images fail to resolve DNS follow these workarounds
+
+If yuo are sudo of the machine follow these steps:
+
+- Generate aa file .json: /etc/docker/daemon.json
+- run "nmcli dev show | grep 'IP4.DNS'"
+- add the following lines to daemon.json file
+{
+    "dns": ["X.X.X.X", "8.8.8.8"]
+}
+- run "sudo service docker restart"
+
+If not:
+
+- run "nmcli dev show | grep 'IP4.DNS'"
+- add at each line of your Dockerfile where internet connection is required: "echo "nameserver IP_address_obtained" > /etc/resolv.conf && command" i.e. echo "nameserver X.X.X.X" > /etc/resolv.conf && apt-get update -y 
 
 ## Notebook
 
