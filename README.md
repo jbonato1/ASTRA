@@ -18,9 +18,12 @@ and subcellular cross-correlation analysis - allowing an unbiased end-to-end cha
 <img src="github_images/D1_pp_st.png" alt="Pre-proc"/>
 
 ### Segmentation Results
-| Semantic Segmentation      | Details of a single cell      | 
-|------------|-------------| 
-|  <img src="github_images/D1_sampleA.png" width="500"> |  <img src="github_images/D1_sampleB.png" width="250"> |
+| Semantic Segmentation      | 
+|------------|
+|  <img src="github_images/D1_sampleA.png" width="500"> |
+|Single cell Details|
+|------------|
+|  <img src="github_images/D1_res_ex.png" width="500"> |
 
 ### Cross Correlation analysis Results
 <img src="github_images/D1_cc_.png" width="600" alt="Cross_corr"/>
