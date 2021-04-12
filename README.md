@@ -68,13 +68,13 @@ If not:
 
 ## Notebook
 
-In this folder there are:
+In notebook folder there are the following notebook where a steb by step tutorial on ASTRO3S is reported
 
-- Set_parameters: in this notebook it is described how to set all the hyperparameters of Astro3S using the training set 
-- Training_Pipeline_PP: in this notebook it is described how to perform the preprocessing of training pipeline in Astro3S
-- Training_Pipeline_Training_DNN: in this notebook it is described how to train the DNN
-- Inference_Pipeline: In this notebook it is described how to perform AstroSS inference on the inference dataset
-- CC_Pipeline
+- 1) Set_parameters
+- 2) Training_Pipeline_PP
+- 3) Training_Pipeline_Training_DNN
+- 4) Inference_Pipeline
+- 5) CC_Pipeline
 
 
 ## Astro3S
@@ -85,7 +85,7 @@ In this folder there are:
 - In model folder there is the DNN developed and used for benchmarking
 
 ### pipelines
-In this folder there are pipelines used to perform experiments described in the paper 
+In this folder there are the pipelines used to perform benchmarks described in the paper on dataset D1,D2,D3
 
 ## Zip_mask
 
@@ -98,4 +98,4 @@ In this folder there are pipelines used to perform experiments described in the 
 In this folder there is the script to download each dataset and organize datasets in different folders
 
 ## weights
-In this folder there is a script to download DNN weights used for benchmarking Astro3S
+In this folder there is a script to download DNN weights used for benchmarking Astro3S on dataset D1,D2,D3
