@@ -33,7 +33,7 @@ This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All 
 
 
 ## Installer
-Installer can be used to install all the fundamental packages used in AstroSS if python 3.6.7 is already installed. If you need to
+Installer can be used to install all the fundamental packages used in Astro3S if python 3.6.7 is already installed. If you need to
 install python run:
 
 - sudo apt update
@@ -65,6 +65,11 @@ If not:
 
 - run "nmcli dev show | grep 'IP4.DNS'"
 - add at each line of your Dockerfile where internet connection is required: "echo "nameserver IP_address_obtained" > /etc/resolv.conf && command" i.e. echo "nameserver X.X.X.X" > /etc/resolv.conf && apt-get update -y 
+### Run the docker image generated
+Here follows an example of docker run command. Feel free to change port and nsert the proper folder into XXX to link this repository. 
+
+- docker run -it -p 8888:8888 --gpus all -v XXX:/astro_folder astro_segm:1.0 bash
+
 
 ## Notebook
 
