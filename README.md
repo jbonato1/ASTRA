@@ -12,7 +12,7 @@ the analysis spatiotemporal information of brain astrocytes. This software is co
 During training pipeline Astro3S hyperparameters are optimized on the training set pre-processed. Thanks to this optimization we removed any 
 human supervision from Astro3S inference pipeline.The inference pipeline comprises three main blocks - pre-processing, semantic segmentation, 
 and subcellular cross-correlation analysis - allowing an unbiased end-to-end characterization of the complex morphological and dynamical properties of astrocytes.  
-
+<!--
 ### Pre-processing modules results
 
 <img src="github_images/D1_pp_st.png" alt="Pre-proc"/>
@@ -24,11 +24,11 @@ and subcellular cross-correlation analysis - allowing an unbiased end-to-end cha
 
 |Single cell Details|
 |:------------------:|
-|  <img src="github_images/D1_res_ex.png" width="600"> |
-
+|  <img src="github_images/D1_res_ex.png" width="600">
+<!--
 ### Cross Correlation analysis Results
 <img src="github_images/D1_cc_.png" width="600" alt="Cross_corr"/>
-
+-->
 This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All the packages are listed in the requirements.txt
 
 
