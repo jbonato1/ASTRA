@@ -21,7 +21,7 @@ and subcellular cross-correlation analysis - allowing an unbiased end-to-end cha
 
 ### Pre-processing modules results
 
-<img src="github_images/D1_pp_st.png" alt="Pre-proc"/>
+<img src="../github_images/D1_pp_st.png" alt="Pre-proc"/>
 
 ### Segmentation Results
 | Semantic Segmentation      | 
