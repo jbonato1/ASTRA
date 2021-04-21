@@ -289,7 +289,7 @@ def fix_mask(mask):
         ret, labels = cv2.connectedComponents(np.uint8(mask_cp))
 
         if ret-1>1:
-            min_cell=1000
+            min_cell=np.inf
             for j in range(1, ret):
                 pts_cell = np.where(labels==j)
                

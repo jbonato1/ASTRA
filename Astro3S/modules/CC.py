@@ -301,3 +301,84 @@ class comp_err_correlation():
             
         return th_out
     
+    
+    
+def clean_outer_pixel(astro_roi,num_pix):
+    #rem H
+    astro_roi[:,:num_pix,:,:]=0
+    astro_roi[:,-num_pix:,:,:]=0
+    #rem W
+    astro_roi[:,:,:num_pix,:]=0
+    astro_roi[:,:,-num_pix:,:]=0
+    
+    return astro_roi
+
+
+def main_CC(stack_o,mask_sp,r,device):
+    
+    print(10*'/','CORR ANALysis',10*'/')
+    stack = stack_o.copy()
+    T,N,M = stack.shape
+    print(stack.flags['C_CONTIGUOUS'])
+    
+    coord_st_l = []
+    coord_cir_l = []
+    for j in range(mask_sp.shape[0]):
+        a,b,_ = create_bb_coord_correlation(np.sum(mask_sp[j,:,:,:],axis=2)) 
+        coord_st_l.append(a[0])
+        coord_cir_l.append(b[0])
+
+
+    err_corr = comp_err_correlation(coord_st_l,coord_cir_l,stack,mask_sp)
+    th_corr =err_corr.find_threshold()
+
+    #######################
+
+    mask_out  = np.zeros((mask_sp.shape[0],N,M,3))
+    mask_out[:,:,:,:2] = mask_sp
+    
+    mask_single_corr = np.zeros((len(coord_st_l),2*r,2*r))
+    mask_single_corr2 = np.zeros((len(coord_st_l),2*r,2*r))
+
+    for j in range(mask_sp.shape[0]):
+
+        #########################################pick coord
+        coord_bb = coord_st_l[j]
+
+        ########################################define buffer
+        mask_crop = np.zeros((2,r*2,r*2))
+        mask_crop[0,:,:] = mask_sp[j,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2],0]
+        mask_crop[1,:,:] = mask_sp[j,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2],1]
+
+        ########################################define stack for cross corr
+        stack_crop = np.empty((T,2*r,2*r))
+        stack_crop = stack[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]].copy()
+
+        #########################################definr map for selected pixels
+        map_ = np.zeros((N,M))
+        map_[coord_cir_l[j][0],coord_cir_l[j][1]]=1
+
+        ###### filter the corners from the stack and from buff mask other cell segmentation 
+        stack_crop = stack_crop*map_[coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]]
+
+
+        if np.sum(mask_sp[j,:,:,0])!=0 and np.sum(mask_sp[j,:,:,1])!=0: 
+
+            out_tensor = corr_mask(mask_crop,stack_crop,device,th_corr)
+            out_tensor_np = out_tensor[0,:,:].data.cpu().numpy()
+            out__ = out_tensor[0,:,:].data.cpu().numpy() + out_tensor[1,:,:].data.cpu().numpy()
+            del out_tensor
+            torch.cuda.empty_cache()
+            out_tensor_np = np.nan_to_num(out_tensor_np)
+            out_tensor_np[out_tensor_np>1]=1 
+            
+            out__ = np.nan_to_num(out__)
+            out__[out__>1]=1 
+            out__-=np.sum(mask_crop,axis=0)
+            mask_out[j,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2],2] += out__#out_tensor_np
+
+
+            mask_single_corr[j,:,:]=out_tensor_np
+            mask_single_corr2[j,:,:]=out__
+    mask_out[mask_out>1]=1
+    return mask_single_corr2,mask_out
