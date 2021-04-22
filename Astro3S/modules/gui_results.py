@@ -156,8 +156,11 @@ def draw_roi_traces(im,Res_mat,dict_im,mapped,id_,cell_num,window):
     ax.axis('off')
 
     rois = gen_mask_sc(dict_im['ROI_'+id_],cell_num.value,im.shape)
-    print('EEEEE',dict_im['Num_CC_'+id_])
-    im_rois = get_im(rois,im,dict_im['Num_CC_'+id_]['Num_CC_'+f'{str(cell_num.value):0>3}'])
+    if 'Num_CC_'+id_ in dict_im.keys():
+        
+        im_rois = get_im(rois,im,dict_im['Num_CC_'+id_]['Num_CC_'+f'{str(cell_num.value):0>3}'])
+    else:
+        im_rois = get_im(rois,im)
     c = ['snow','lime','red']
     palette = copy(mapped.value)
     palette.set_over(c[0],1.0)

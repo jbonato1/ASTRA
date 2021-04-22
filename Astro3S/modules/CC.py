@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import cv2
-
+from get_traces import allineate_stack
 
 
 @torch.no_grad()
@@ -69,85 +69,6 @@ def corr_mask(roi_proc,crop_stack,device,th_corr,nf_mFilter=5):
     return coor_pix_ten
 
 
-
-
-
-def create_bb_coord_correlation(soma_mask,radius = 60):
-   
-    N,M = soma_mask.shape
-    soma = np.empty_like(soma_mask)
-    soma = soma_mask.copy()
-    soma[soma>0.1]=255
-
-    _,thresh = cv2.threshold(np.uint8(soma),127,255,0)
-
-    # find contours in the binary image
-    contours, _= cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)
-
-    # loop over the contours
-    #list of array with the coordinate
-    coord_list_st = []
-    coord_list_cell = []
-    coord_list_circle = []
-    for c in contours:
-        if c.shape[0]!=1:
-            im_buff = np.zeros((N,M))
-            # coordinate cell
-            contours_poly = cv2.approxPolyDP(c, 3, True)
-            boundRect = cv2.boundingRect(contours_poly)
-
-            coord = np.array([int(boundRect[0])-2,int(boundRect[1])-2,int(boundRect[0])+int(boundRect[2])+2,int(boundRect[1])+int(boundRect[3])+2])
-            for el in range(4):
-                if coord[el]>N:
-                    coord[el]=N
-                elif coord[el]<0:
-                    coord[el]=0
-            coord_list_cell.append(coord)
-
-            # coordinate bb 100
-            # compute the center of the contour
-            M = cv2.moments(c)
-            cX = int(M["m10"] / (M["m00"]+1e-5))
-            cY = int(M["m01"] / (M["m00"]+1e-5))
-
-            casex=2
-            casey=2
-            if cX-radius<0:
-                casex=0
-            elif cX+radius>N:
-                casex=1
-            if cY-radius<0:
-                casey=0
-            elif cY+radius>N:
-                casey=1
-            #x
-            if casex==2:
-                c1x=cX-radius
-                c2x=cX+radius
-            elif casex==0:
-                c1x=0
-                c2x=2*radius
-            else:
-                c1x=N-2*radius
-                c2x=N
-            #y
-            if casey==2:
-                c1y=cY-radius
-                c2y=cY+radius
-            elif casey==0:
-                c1y=0
-                c2y=2*radius
-            else:
-                c1y=N-2*radius
-                c2y=N
-            #compute the region of astrocyte radius 60
-            cv2.circle(im_buff,(cX,cY),radius,(255,0,0),thickness =-1,lineType=8)
-            coord_circle = np.where(im_buff==255)
-            coord_list_circle.append(coord_circle)
-
-            coord = np.array([c1x,c1y,c2x,c2y])
-            coord_list_st.append(coord)
-        return coord_list_st,coord_list_circle, coord_list_cell
 
 class comp_err_correlation():
     
@@ -313,8 +234,37 @@ def clean_outer_pixel(astro_roi,num_pix):
     
     return astro_roi
 
+def cleanCC_for_signals(dict_ROI,mask_ROI,MAX_ROI_AREA_PROC):
+    _,N,M,_ = mask_ROI.shape
+    for key in dict_ROI.keys():
+        coord = dict_ROI[key]
+        mask_ROI[:,coord[0],coord[1],2]=0
+    mask_ROI_clean = np.zeros_like(mask_ROI)
+    mask_ROI_clean[:,:,:,:2] = mask_ROI[:,:,:,:2]
+    
+    mask_ROI_inter_region = np.zeros((N,M))
+    
+    for i in range(mask_ROI.shape[0]):
+        num,comp = cv2.connectedComponents(mask_ROI[i,:,:,2].astype(np.uint8))
+        for k in range(1,num):
+            pt = np.where(comp==k)
+            if pt[0].shape[0]>=(MAX_ROI_AREA_PROC)//2:
+                mask_ROI_clean[i,pt[0],pt[1],2]=1
+    ### Intersection regions
+    mask_ROI_inter_region = np.sum(mask_ROI_clean[:,:,:,2],axis=0)
+    mask_ROI_inter_region[mask_ROI_inter_region<=1]=0
+    
+    for i in range(mask_ROI.shape[0]):
+        for j in range(i+1,mask_ROI.shape[0]):
+            mask_ROI_clean[i,:,:,2]-=mask_ROI_clean[j,:,:,2]
+    
+    mask_ROI_clean[mask_ROI_clean<0]=0
+    
+    return mask_ROI_clean,mask_ROI_inter_region
 
-def main_CC(stack_o,mask_sp,r,device):
+
+def main_CC(stack_o,mask_sp,device,r,coord_dict,shift):
+    
     
     print(10*'/','CORR ANALysis',10*'/')
     stack = stack_o.copy()
@@ -324,9 +274,9 @@ def main_CC(stack_o,mask_sp,r,device):
     coord_st_l = []
     coord_cir_l = []
     for j in range(mask_sp.shape[0]):
-        a,b,_ = create_bb_coord_correlation(np.sum(mask_sp[j,:,:,:],axis=2)) 
-        coord_st_l.append(a[0])
-        coord_cir_l.append(b[0])
+        name = str(j)
+        coord_st_l.append(coord_dict['ST_'+f'{name:0>3}'] )
+        coord_cir_l.append(coord_dict['CIRCLE_'+f'{name:0>3}'] )
 
 
     err_corr = comp_err_correlation(coord_st_l,coord_cir_l,stack,mask_sp)
@@ -352,7 +302,16 @@ def main_CC(stack_o,mask_sp,r,device):
 
         ########################################define stack for cross corr
         stack_crop = np.empty((T,2*r,2*r))
-        stack_crop = stack[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]].copy()
+        
+        ###to do insert shift corr
+        if not(shift is None):
+            stack_buffer = allineate_stack(stack,shift['Shift_'+f'{str(j):0>3}'],r_domain=r)
+            stack_crop = stack_buffer[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]].copy()
+        else:
+            stack_crop = stack[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]].copy()
+        ###
+        
+        
 
         #########################################definr map for selected pixels
         map_ = np.zeros((N,M))
