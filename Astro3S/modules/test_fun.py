@@ -303,7 +303,7 @@ def fix_mask(mask):
 
 
 
-def prob_calc(prob_map,max_a,min_a):
+def prob_calc(prob_map,max_a,min_a,verbose=False):
     font= cv2.FONT_HERSHEY_DUPLEX
     map_ = np.zeros_like(prob_map)
     map_[prob_map>0]=1
@@ -314,11 +314,11 @@ def prob_calc(prob_map,max_a,min_a):
             
             q = np.around(np.sum(prob_map[pts])/len(pts[0]),decimals=2)
             cv2.putText(prob_map,str(q), (int(np.mean(pts[1])),int(np.mean(pts[0]))), font, 0.4, (2,0,0), 1, cv2.LINE_AA)
-            print(len(pts[0]),q)
+            if verbose: print('Area in px: ',len(pts[0]),'Prob:', q)
             if q<90 and len(pts[0])<min_a:
                 map_[pts]=0
         else:
-            print('qw',len(pts[0]))
+            if verbose: print('Area: ',len(pts[0]), 'removed')
             map_[pts]=0
             if len(pts[0])>int(max_a*1.15):                
                 prob_map[pts]=0

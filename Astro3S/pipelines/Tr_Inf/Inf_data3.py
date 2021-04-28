@@ -23,7 +23,7 @@ import math
 import sys
 
 import argparse
-sys.path.insert(0,'/media/DATA/jbonato/astro_segm/AstroSS/modules/')
+sys.path.insert(0,'/media/DATA/jbonato/astro_segm/Astro3S/modules/')
 
 from test_fun import *
 from sel_active_reg_gen import *
@@ -71,6 +71,7 @@ def prob(mask):
             if prob>=0.75:
                 out[pts[0],pts[1]]=1
     return out
+
 def small_roi(mask,min_a,max_a):
     mask_tot = mask.copy()
     mask_tot[mask_tot>0.5]=255
@@ -113,9 +114,9 @@ model = model.to(device)
 
 
 N=430
-max_min = np.loadtxt('/media/DATA/jbonato/astro_segm/AstroSS/pipelines/data3.csv',delimiter=',')
+max_min = np.loadtxt('/media/DATA/jbonato/astro_segm/Astro3S/pipelines/data3.csv',delimiter=',')
 
-for jj in range(6,7):
+for jj in range(1,7):
 
     Res_1 = np.zeros((430,430,2))
     
@@ -127,7 +128,7 @@ for jj in range(6,7):
             test_folder_str1='0'+test_folder_str
         
     
-        model.load_state_dict(torch.load('/media/DATA/jbonato/segm_project/weights/dense_up006large_rdata1.pt'))#'/media/DATA/jbonato/astro_segm/weights/'+args.model+test_folder_str1+'D3.pt'))
+        model.load_state_dict(torch.load('/media/DATA/jbonato/astro_segm/weights/'+args.model+test_folder_str1+'D3.pt'))
         
         
         
