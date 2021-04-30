@@ -1,5 +1,6 @@
-# Astrocyte Segmentation Project
-We developed Astro3S, a novel software for astrocyte spatiotemporal semantic segmentation, which combines deep learning algorithms
+<div style="text-align:center"><img src="github_images/logo.svg" width="700" alt="Pipelines"/>
+
+Astro3S, a novel software for astrocyte spatiotemporal semantic segmentation, combines deep learning algorithms
 with features engineering of calcium data and operates without human intervention. Astro3S performs fast and precise identification 
 of astrocytic cell somata, processes, and cellular domains showing correlated calcium dynamic. 
 
