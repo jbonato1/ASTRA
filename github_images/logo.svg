@@ -42,10 +42,10 @@
      pagecolor="#ffffff"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
-     inkscape:cx="495.53488"
+     inkscape:cx="131.87997"
      inkscape:cy="-60.000488"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
@@ -54,7 +54,8 @@
      inkscape:window-height="1395"
      inkscape:window-x="77"
      inkscape:window-y="8"
-     inkscape:window-maximized="0" />
+     inkscape:window-maximized="0"
+     inkscape:pagecheckerboard="false" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -63,7 +64,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -3355,22 +3356,22 @@
            y="178.73454" /></flowRegion><flowPara
          id="flowPara7333"
          style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman,  Italic'"><flowSpan
-   style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
-   id="flowSpan2241">Astro</flowSpan><flowSpan
-   style="font-size:32px"
-   id="flowSpan2291">cyte</flowSpan> <flowSpan
-   style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
-   id="flowSpan2231">S</flowSpan><flowSpan
-   style="font-size:32px"
-   id="flowSpan2289">patiotemporal</flowSpan> <flowSpan
-   style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
-   id="flowSpan2233">S</flowSpan><flowSpan
-   style="font-size:32px"
-   id="flowSpan2287">emantic</flowSpan> <flowSpan
-   style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
-   id="flowSpan2235">S</flowSpan><flowSpan
-   style="font-size:32px"
-   id="flowSpan2285">egmentation</flowSpan></flowPara></flowRoot>    <path
+           style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
+           id="flowSpan2241">Astro</flowSpan><flowSpan
+           style="font-size:32px"
+           id="flowSpan2291">cyte </flowSpan><flowSpan
+           style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
+           id="flowSpan2231">S</flowSpan><flowSpan
+           style="font-size:32px"
+           id="flowSpan2289">patiotemporal </flowSpan><flowSpan
+           style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
+           id="flowSpan2233">S</flowSpan><flowSpan
+           style="font-size:32px"
+           id="flowSpan2287">emantic </flowSpan><flowSpan
+           style="font-style:italic;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:42.66666794px;font-family:'Times New Roman';-inkscape-font-specification:'Times New Roman, Bold Italic'"
+           id="flowSpan2235">S</flowSpan><flowSpan
+           style="font-size:32px"
+           id="flowSpan2285">egmentation</flowSpan></flowPara></flowRoot>    <path
        style="opacity:0;fill:#3e53ca;fill-opacity:0.80476188;fill-rule:nonzero;stroke:#a00000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.06666667;paint-order:normal"
        id="path1647"
        sodipodi:type="arc"
