@@ -1,4 +1,4 @@
-<div style="text-align:center"><img src="github_images/logo.svg" width="700" alt="Pipelines"/>
+<div style="text-align:center"><img src="github_images/logo.png" width="700" alt="Pipelines"/>
 
 Astro3S, a novel software for astrocyte spatiotemporal semantic segmentation, combines deep learning algorithms
 with features engineering of calcium data and operates without human intervention. Astro3S performs fast and precise identification 
