@@ -34,7 +34,7 @@ class ThScal():
         return ff
 
 @cuda.jit
-def sel_active_gpu(T,per_mat,stack,im_out,cover,BPM_ratio,stp):
+def sel_active_gpu(T,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block):
     b_dimx = cuda.blockDim.x
     b_dimy = cuda.blockDim.y
     
@@ -76,6 +76,7 @@ class sel_active_reg():
         self.gpu_flag = dict_params['gpu_flag']
         self.static = static
         self.verbose = verbose
+        self.iter_block = 5
         
     @staticmethod
     def percent_matrix_par(stack,t,listx,bb,per_tile):
@@ -150,7 +151,7 @@ class sel_active_reg():
             mat_per = np.tile(mat_per,(T,1,1))
         ### allocate percentile matrix
         mat_per_g = cuda.to_device(mat_per)    
-        sel_active_gpu[blockspergrid, threadsperblock](T,mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp)
+        sel_active_gpu[blockspergrid, threadsperblock](T,mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block)
         im_out = im_out_g.copy_to_host()
         cover = cover_g.copy_to_host()
         self.mask_tot = np.empty_like(im_out)
