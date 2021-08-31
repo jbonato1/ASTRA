@@ -301,7 +301,37 @@ class spatial_pp():
 
         return stack_new,cl1
     
+    def create_img_d4(self,T_st=0):
 
+        _,N,M = self.stack.shape
+        if T_st==0:
+            self.stack = self.stack.astype(np.float32)
+        else:
+            self.stack = self.stack[:T_st,:,:].astype(np.float32)
+            
+        stack_new = self.stack.copy()
+
+        T,N,M = stack_new.shape
+        for t in range(T):
+            stack_new[t,:,:] = stack_new[t,:,:] - np.percentile(stack_new[t,:,:],10)
+            stack_new[t,:,:][stack_new[t,:,:]<0]=0 
+
+        conv_im = np.median(stack_new,axis=0)       
+        maximum = 65535/np.amax(conv_im) 
+        conv_im =conv_im.astype(np.float32)*maximum   
+
+
+        clahe = cv2.createCLAHE(clipLimit=0.5, tileGridSize=(8,8))
+        cl1 = clahe.apply(np.uint16(conv_im))       
+
+
+        kernel_sharpening = np.array([[-1,-1,-1], 
+                                  [-1, 9,-1],
+                                  [-1,-1,-1]])
+
+        denoise = np.uint16(cl1)
+        
+        return stack_new,denoise
 
 
 ###################################################### Inference PP
@@ -322,10 +352,17 @@ class filt_im(spatial_pp):
 
     
     def filtering(self,stack,th1_p=0.25,th2_p=0.1):
+        
         T,N,M = stack.shape
-
-
-        percent = np.percentile(stack.reshape(T*N*M),90)
+        
+        if T>1000:
+            
+            T_pr = 700
+        else:
+            
+            T_pr = T
+            
+        percent = np.percentile(stack[:T,:,:].reshape(T*N*M),90)
         stack_cp = stack.copy()
         stack_cp[stack<percent]=0
         stack_cp[stack>=percent]=1
@@ -339,7 +376,7 @@ class filt_im(spatial_pp):
         fill_s= np.zeros_like(sum_)
         fill_s[sum_==0]=1
         stack_f=stack.copy()*fill_s
-        percent = np.percentile(stack_f.reshape(T*N*M),90)
+        percent = np.percentile(stack_f[:T,:,:].reshape(T*N*M),90)
         stack_f[stack_f<percent]=0
         stack_f[stack_f>=percent]=1
 
@@ -449,8 +486,8 @@ class tune_th(filt_im):
         TP_err=[]
         if self.filt_meth == 'std':
                 for th1_p,th2_p in zip([0.3,0.25,0.20,0.15],[0.15,0.1,0.07,0.05]):
-                    
-                    for coord in self.coord_list:
+                    print('THRESH',th1_p,th2_p)
+                    for coord in self.coord_list[:20]:
           
                         stack_to_crop = self.stack.copy()
                         crop_stack = stack_to_crop[:,coord[1]:coord[3],coord[0]:coord[2]]        
