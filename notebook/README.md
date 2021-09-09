@@ -1,14 +1,14 @@
 
-## Astro3S step by step notebooks
+## RASTA step by step notebooks
 This software is composed by 2 pipelines named training and inference.
 
 <div style="text-align:center"><img src="../github_images/test_train.svg" width="700" alt="Pipelines"/>
 
-Astro3S hyperparameters are optimized on the training set pre-processed. Set_parameters, Training_Pipeline_PP and Training_PIpeline_Training_DNN are the notebooks where Training procedure is described. 
+RASTA hyperparameters are optimized on the training set pre-processed. Set_parameters, Training_Pipeline_PP and Training_PIpeline_Training_DNN are the notebooks where Training procedure is described. 
 
 
-- Set_parameters: in this notebook it is described how to set all the hyperparameters of Astro3S using the training set 
-- Training_Pipeline_PP: in this notebook it is described how to perform the preprocessing of training pipeline in Astro3S
+- Set_parameters: in this notebook it is described how to set all the hyperparameters of RASTA using the training set 
+- Training_Pipeline_PP: in this notebook it is described how to perform the preprocessing of training pipeline in RASTA
 - Training_Pipeline_Training_DNN: in this notebook it is described how to train the DNN
 
 
