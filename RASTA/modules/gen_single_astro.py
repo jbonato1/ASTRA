@@ -35,47 +35,52 @@ def create_bb_coord(soma_mask,BB_dim):
         # compute the center of the contour
         filt_= np.zeros((N,M))
         Mom = cv2.moments(c)
-        cX = int(Mom["m10"] / Mom["m00"])
-        cY = int(Mom["m01"] / Mom["m00"])
-        #print(cX,cY)
-        cv2.circle(filt_,(cX,cY),43,255,thickness = -1,lineType=8)
-        filt_im_zone[:,:,cnt]=filt_
-        cnt+=1
+        #print(Mom)
+        if  Mom["m00"]==0:
+            pass
+        else:
+            cX = int(Mom["m10"] / Mom["m00"])
+            cY = int(Mom["m01"] / Mom["m00"])
+            #print(cX,cY)
+            cv2.circle(filt_,(cX,cY),43,255,thickness = -1,lineType=8)
+            filt_im_zone[:,:,cnt]=filt_
+            cnt+=1
 
-        casex=2
-        casey=2
-        if cX-BBh<0:
-            casex=0
-        elif cX+BBh>M:
-            casex=1
-        if cY-BBh<0:
-            casey=0
-        elif cY+BBh>N:
-            casey=1
-        #x
-        if casex==2:
-            c1x=cX-BBh
-            c2x=cX+BBh
-        elif casex==0:
-            c1x=0
-            c2x=BB_dim
-        else:
-            c1x=M-BB_dim
-            c2x=M
-        #y
-        if casey==2:
-            c1y=cY-BBh
-            c2y=cY+BBh
-        elif casey==0:
-            c1y=0
-            c2y=BB_dim
-        else:
-            c1y=N-BB_dim
-            c2y=N
+            casex=2
+            casey=2
+            if cX-BBh<0:
+                casex=0
+            elif cX+BBh>M:
+                casex=1
+            if cY-BBh<0:
+                casey=0
+            elif cY+BBh>N:
+                casey=1
+            #x
+            if casex==2:
+                c1x=cX-BBh
+                c2x=cX+BBh
+            elif casex==0:
+                c1x=0
+                c2x=BB_dim
+            else:
+                c1x=M-BB_dim
+                c2x=M
+            #y
+            if casey==2:
+                c1y=cY-BBh
+                c2y=cY+BBh
+            elif casey==0:
+                c1y=0
+                c2y=BB_dim
+            else:
+                c1y=N-BB_dim
+                c2y=N
+
+            coord = np.array([c1x,c1y,c2x,c2y])
+            #print(coord)
+            coord_list.append(coord)
         
-        coord = np.array([c1x,c1y,c2x,c2y])
-        #print(coord)
-        coord_list.append(coord)
     filt_im_zone[filt_im_zone>0]=1
     #print(len(coord_list))
     return coord_list,filt_im_zone
@@ -408,7 +413,9 @@ class filt_im(spatial_pp):
         
         dim = self.BB_dim
         out_dim = self.BB_dim + 2*pad
-        #print(out_dim)
+        
+        print('check',self.stack.shape)
+        
         T,N,M = self.stack.shape
         if case==1:
             _,im = self.create_img()
@@ -416,6 +423,8 @@ class filt_im(spatial_pp):
             _,im = self.create_img_d2()
         elif case==3:
             _,im = self.create_img_large()
+        elif case==4:    
+            _,im = self.create_img_d4()
             
         im_to_crop = np.empty_like(im)
         stack_to_crop = np.empty_like(self.stack)
@@ -487,7 +496,7 @@ class tune_th(filt_im):
         if self.filt_meth == 'std':
                 for th1_p,th2_p in zip([0.3,0.25,0.20,0.15],[0.15,0.1,0.07,0.05]):
                     print('THRESH',th1_p,th2_p)
-                    for coord in self.coord_list[:20]:
+                    for coord in self.coord_list:
           
                         stack_to_crop = self.stack.copy()
                         crop_stack = stack_to_crop[:,coord[1]:coord[3],coord[0]:coord[2]]        
