@@ -355,8 +355,9 @@ def common_merge(sm_fr,sm_ent):
     return merge
 
 
-def common_merge_mesoscope(sm_fr,sm_ent):
+def common_merge_par(sm_fr,sm_ent):
     merge = np.zeros_like(sm_fr)
+    
     def merge_masks(i,labels_fr,labels_ent,ret_ent):
         
         N,M = labels_fr.shape
@@ -384,7 +385,7 @@ def common_merge_mesoscope(sm_fr,sm_ent):
     
     
     
-    out_el = Parallel(n_jobs=12,verbose=1,require='sharedmem')(delayed(merge_masks)(i,labels,labels1,ret1)for i in range(1, ret))
+    out_el = Parallel(n_jobs=-1,verbose=0,require='sharedmem')(delayed(merge_masks)(i,labels,labels1,ret1)for i in range(1, ret))
     for out in out_el:
         merge+=out
     

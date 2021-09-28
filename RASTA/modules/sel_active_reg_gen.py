@@ -51,6 +51,40 @@ def sel_active_gpu(T,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block):
         cuda.atomic.add(cover,(bz,(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
 
 
+@cuda.jit
+def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block,last_stp):
+    #clean code 32 with step 5 with cycle 928 with step*cycle*iter-step
+    
+    size = cuda.gridDim.x
+    iterat = iter_block//(size//BPM_ratio)
+    if iter_block%(size//BPM_ratio)>0:
+        iterat+=1
+    
+    
+    
+    b_dimx = cuda.blockDim.x
+    b_dimy = cuda.blockDim.y
+    stp_iter = b_dimx*(size//BPM_ratio)
+    
+    bx = cuda.blockIdx.x  
+    by = cuda.blockIdx.y
+            
+    tx = cuda.threadIdx.x
+    ty = cuda.threadIdx.y
+
+    for it_bk in range(iterat):
+        for it_bk_y in range(iterat):
+        
+            if it_bk*stp_iter+((bx//BPM_ratio)*stp)<=last_stp and it_bk_y*stp_iter+((by//BPM_ratio)*stp)<=last_stp:
+
+                if stack[bz,it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty] >= per_mat[bz+time_ref,it_bk*5+bx//BPM_ratio,it_bk_y*5+by//BPM_ratio]:
+                    cuda.atomic.add(im_out,(it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
+
+                if bz ==0 and time_ref==0:
+                    cuda.atomic.add(cover,(it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
+    
+    
+    
 class sel_active_reg():
     
     def __init__(self,stack,dict_params,verbose=True,static=False):
@@ -76,7 +110,8 @@ class sel_active_reg():
         self.gpu_flag = dict_params['gpu_flag']
         self.static = static
         self.verbose = verbose
-        self.iter_block = 5
+        self.iter_block = len(dict_params['list'])
+        self.gpu_num = 0
         
     @staticmethod
     def percent_matrix_par(stack,t,listx,bb,per_tile):
@@ -157,12 +192,73 @@ class sel_active_reg():
         self.mask_tot = np.empty_like(im_out)
         self.mask_tot  = im_out/cover 
         #print('qqqq',im_out.max(),im_out.min(),cover.max(),cover.min())
-          
-    def get_mask(self,find_round=True):
+    
+    def sel_active_reg_gpu_gen(self):
+
+        T,N,M = self.stack.shape
+        cuda.select_device(self.gpu_num)    
+
+        threadsperblock = (self.threads,self.threads)
+        blockspergrid = (self.blocks,self.blocks)
+            
+        if self.verbose: print('Computing local thresholds')
+        # compute percentile in patches
+        if not(self.static):
+            percent_list = Parallel(n_jobs=-1,verbose=1)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
+            percentiles = np.asarray(percent_list).astype(np.float32)
+            mat_per = percentiles[:,:-1,:]
+
+            mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]# reorder the embarasing parallel collection of mat
+            
+        #### mod for static fluorophore
+        # compute a single percentile for all the stack, and than generate a T x num_patch x num_patch 
+        elif self.static:
+            mat_per = np.percentile(self.stack.flatten(),self.per_tile).reshape(1,1)
+            mat_per = np.tile(mat_per,(T,1,1))
+            
+            
+        #mat_per = np.zeros((T,len(self.step_list),len(self.step_list)))#,dtype=np.int32   
+        ### allocate percentile matrix
+        if self.verbose: print('GPU started',blockspergrid, threadsperblock,self.iter_block/(self.blocks/self.BPM_ratio),self.step_list[-1])
+        
+        mat_per_g = cuda.to_device(mat_per) 
+        ### allocate in ram
+        im_out = np.zeros((N,M),dtype=np.int32)
+        cover = np.zeros((N,M),dtype=np.int32)
+        ### allocate and load in DRAM
+        im_out_g = cuda.to_device(im_out)
+        cover_g = cuda.to_device(cover)
+
+        blocks_to_load =[i*1000 for i in range((T//1000)+1)]
+        blocks_to_load.append(T)
+       
+        for stps in range(len(blocks_to_load)-1):
+            stack_gpu = cuda.to_device(self.stack[blocks_to_load[stps]:blocks_to_load[stps+1],:,:])
+            print(stps)
+            
+            for bz in range(blocks_to_load[stps+1]-blocks_to_load[stps]):
+                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1])
+                
+            ### free from old stack
+            del stack_gpu
+
+        im_out = im_out_g.copy_to_host()
+        cover = cover_g.copy_to_host()
+        if self.verbose: print('GPU done')
+        del im_out_g, cover_g, mat_per_g
+        
+        self.mask_tot = np.empty_like(im_out).astype(np.float64)
+        self.mask_tot  = im_out.astype(np.float64)/cover.astype(np.float64) 
+        #return im_out,cover
+    
+    
+    def get_mask(self,find_round=True,long_rec=False):
         T,_,_ = self.stack.shape
         
         if self.gpu_flag:
             self.sel_active_reg_gpu()
+        elif self.gpu_flag and long_rec:
+            self.sel_active_reg_gpu_gen()
         else:
             self.sel_active_reg_cpu()
     
@@ -234,7 +330,7 @@ class sel_active_reg():
                 labels[pts]=0
         labels[labels>0]=1
         return labels
-
+    
 
 
 
