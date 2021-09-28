@@ -1,6 +1,7 @@
 import numpy as np
 import cv2 
 from sklearn.metrics import f1_score 
+from joblib import Parallel, delayed
 
 def create_bb(soma_mask):
     N,_ = soma_mask.shape
@@ -202,11 +203,12 @@ def art_rem_large(soma,proc=None,N=300):
 
 
 def art_rem(soma,proc):
+    N,M = soma.shape
     ret_m, labels_m = cv2.connectedComponents(np.uint8(soma+proc))
     cells= soma+proc
-    mask_fin = np.zeros((256,256))
+    mask_fin = np.zeros((N,M))
     for i in range(1, ret_m):
-        mask_buff = np.zeros((256,256))
+        mask_buff = np.zeros((N,M))
         
         pts_m = np.where(labels_m==i)
         mask_buff[pts_m]=1
@@ -272,6 +274,7 @@ def no_proc_soma(mask_proc, mask_soma):
 
 
 def fix_mask(mask):
+    N,M = mask.shape
     mask_fixed = mask.copy()
     #dilation
     dilatation_size = 2
@@ -279,10 +282,10 @@ def fix_mask(mask):
     mask_dilated =  cv2.dilate(np.uint8(mask), element)
     ret_m, labels_m = cv2.connectedComponents(np.uint8(mask_dilated))
 
-    mask_fin = np.zeros((256,256))
+    mask_fin = np.zeros((N,M))
     for i in range(1, ret_m):
         mask_cp = mask.copy()
-        mask_buff = np.zeros((256,256),dtype=np.uint8)
+        mask_buff = np.zeros((N,M),dtype=np.uint8)
         pts_m = np.where(labels_m==i)
         mask_buff[pts_m]=1
         mask_cp*=mask_buff
@@ -350,6 +353,47 @@ def common_merge(sm_fr,sm_ent):
     
     merge[merge>1]=1
     return merge
+
+
+def common_merge_par(sm_fr,sm_ent):
+    merge = np.zeros_like(sm_fr)
+    
+    def merge_masks(i,labels_fr,labels_ent,ret_ent):
+        
+        N,M = labels_fr.shape
+        merged = np.zeros((N,M))
+        
+        pts =  np.where(labels_fr == i)
+        mask_tmp = np.zeros((N,M))
+        mask_tmp[pts]=1
+        for j in range(1, ret_ent):
+            pts1 = np.where(labels_ent == j)
+            mask_tmp1 = np.zeros((N,M))
+            mask_tmp1[pts1]=1
+            if len(pts1[0])>len(pts[0]):
+                ref = len(pts[0])
+            else:
+                ref = len(pts1[0])
+            if np.sum(mask_tmp*mask_tmp1)>0.1*ref:
+                merged+=mask_tmp
+                merged+=mask_tmp1
+        return merged
+    
+    N,M = sm_fr.shape
+    ret, labels = cv2.connectedComponents(np.uint8(sm_fr))
+    ret1, labels1 = cv2.connectedComponents(np.uint8(sm_ent))
+    
+    
+    
+    out_el = Parallel(n_jobs=-1,verbose=0,require='sharedmem')(delayed(merge_masks)(i,labels,labels1,ret1)for i in range(1, ret))
+    for out in out_el:
+        merge+=out
+    
+    merge[merge>1]=1
+    return merge
+
+
+
 
 def gen_sc_mask(mask):
     N,M,cl = mask.shape

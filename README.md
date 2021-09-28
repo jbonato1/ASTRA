@@ -1,17 +1,17 @@
 <div style="text-align:center"><img src="github_images/logo.png" width="700" alt="Pipelines"/>
 
-Astro3S, a novel software for astrocyte spatiotemporal semantic segmentation, combines deep learning algorithms
-with features engineering of calcium data and operates without human intervention. Astro3S performs fast and precise identification 
+RASTA, a novel software for astrocyte spatiotemporal semantic segmentation, combines deep learning algorithms
+with features engineering of calcium data and operates without human intervention. RASTA performs fast and precise identification 
 of astrocytic cell somata, processes, and cellular domains showing correlated calcium dynamic. 
 
-## Astro3S: Astrocyte Spatiotemporal Semantic Segmentation using machine learning techniques
-Astro3S is a software that employs a combination of supervised and unsupervised techniques providing a fully automatic pipeline for 
+## RASTA: Astrocyte Spatiotemporal Semantic Segmentation using machine learning techniques
+RASTA is a software that employs a combination of supervised and unsupervised techniques providing a fully automatic pipeline for 
 the analysis spatiotemporal information of brain astrocytes. This software is composed by 2 pipelines named training and inference.
 
 <div style="text-align:center"><img src="github_images/test_train.svg" width="700" alt="Pipelines"/>
 
-During training pipeline Astro3S hyperparameters are optimized on the training set pre-processed. Thanks to this optimization we removed any 
-human supervision from Astro3S inference pipeline.The inference pipeline comprises three main blocks - pre-processing, semantic segmentation, 
+During training pipeline RASTA hyperparameters are optimized on the training set pre-processed. Thanks to this optimization we removed any 
+human supervision from RASTA inference pipeline.The inference pipeline comprises three main blocks - pre-processing, semantic segmentation, 
 and subcellular cross-correlation analysis - allowing an unbiased end-to-end characterization of the complex morphological and dynamical properties of astrocytes.  
 <!--
 ### Pre-processing modules results
@@ -34,7 +34,7 @@ This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All 
 
 
 ## Installer
-Installer can be used to install all the fundamental packages used in Astro3S if python 3.6.7 is already installed. If you need to
+Installer can be used to install all the fundamental packages used in RASTA if python 3.6.7 is already installed. If you need to
 install python run:
 
 - sudo apt update
@@ -47,7 +47,7 @@ With file set_up2 all the necessary python packages will be installed and a virt
 ## Nvidia-Docker (recommended) 
 We have written a Dockerfile to use our software on nvida-docker and skip the manual installation of each package. 
 - Install nvidia-docker if you have not installed it on your machine. Follow instructions at https://github.com/NVIDIA/nvidia-docker
-- run: "docker pull nvidia/cuda:10.1-runtime-ubuntu18.04"
+- run: "docker pull nvidia/cuda:10.1-devel-ubuntu18.04"
 - run: "docker build -t astro_segm:1.0 ."
 
 ### Attention: if your docker images fail to resolve DNS follow these workarounds
@@ -83,7 +83,7 @@ In notebook folder there are the following notebook where a steb by step tutoria
 - 5) CC_Pipeline
 
 
-## Astro3S
+## RASTA
 
 ### modules
 
@@ -104,4 +104,4 @@ In this folder there are the pipelines used to perform benchmarks described in t
 In this folder there is the script to download each dataset and organize datasets in different folders
 
 ## weights
-In this folder there is a script to download DNN weights used for benchmarking Astro3S on dataset D1,D2,D3
+In this folder there is a script to download DNN weights used for benchmarking RASTA on dataset D1,D2,D3
