@@ -56,12 +56,10 @@ def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter
     #clean code 32 with step 5 with cycle 928 with step*cycle*iter-step
     
     size = cuda.gridDim.x
-    iterat = iter_block//(size//BPM_ratio)
+    iterat = int(iter_block//(size//BPM_ratio))
     if iter_block%(size//BPM_ratio)>0:
         iterat+=1
-    
-    
-    
+        
     b_dimx = cuda.blockDim.x
     b_dimy = cuda.blockDim.y
     stp_iter = b_dimx*(size//BPM_ratio)
@@ -71,17 +69,17 @@ def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter
             
     tx = cuda.threadIdx.x
     ty = cuda.threadIdx.y
+    
+    for it in range(iterat*iterat):
+        it_bk =it//iterat
+        it_bk_y = it%iterat
+        if it_bk*stp_iter+((bx//BPM_ratio)*stp)<=last_stp and it_bk_y*stp_iter+((by//BPM_ratio)*stp)<=last_stp:
 
-    for it_bk in range(iterat):
-        for it_bk_y in range(iterat):
-        
-            if it_bk*stp_iter+((bx//BPM_ratio)*stp)<=last_stp and it_bk_y*stp_iter+((by//BPM_ratio)*stp)<=last_stp:
+            if stack[bz,it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty] >= per_mat[bz+time_ref,it_bk*5+bx//BPM_ratio,it_bk_y*5+by//BPM_ratio]:
+                cuda.atomic.add(im_out,(it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
 
-                if stack[bz,it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty] >= per_mat[bz+time_ref,it_bk*5+bx//BPM_ratio,it_bk_y*5+by//BPM_ratio]:
-                    cuda.atomic.add(im_out,(it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
-
-                if bz ==0 and time_ref==0:
-                    cuda.atomic.add(cover,(it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
+            if bz ==0 and time_ref==0:
+                cuda.atomic.add(cover,(it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
     
     
     
