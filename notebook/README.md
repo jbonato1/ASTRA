@@ -42,4 +42,4 @@ In the GUI there are:
 - All ROIs extracted or eventually a selected single cell ROIs overlayed on median projection of the recording
 - Signal extracted from a selected cell
 
-<img src="../github_images/GUI_git.png" width="600"/>
+<img src="../github_images/GUI_git.png" />
