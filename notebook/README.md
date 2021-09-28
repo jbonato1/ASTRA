@@ -35,3 +35,11 @@ and subcellular cross-correlation analysis - allowing an unbiased end-to-end cha
 ### Cross Correlation analysis Results
 <img src="../github_images/D1_cc_.png" width="600" alt="Cross_corr"/>
 
+### GUI for ROIs visualization and signal extraction
+In Inference_Pipeline.ipynb and CC_Pipeline.ipynb notebooks we added a GUI for ROIs visualization and signal extraction embedded in jupyter.
+In the GUI there are:
+- Original video
+- All ROIs extracted or eventually a selected single cell ROIs overlayed on median projection of the recording
+- Signal extracted from a selected cell
+
+<img src="../github_images/GUI_git.png" width="600"/>
