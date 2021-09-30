@@ -610,3 +610,54 @@ class filt_im(spatial_pp):
         
         act_filt[act_filt>1]=1
         return out_stack,act_filt
+
+class tune_th(filt_im):
+    
+    def __init__(self, stack,mask,BB_dim,filt_meth='std'):
+        self.BB_dim = BB_dim   
+        self.stack = stack
+        self.mask = mask
+        self.coord_list,self.filt_im_zone = create_bb_coord(mask[:,:,1],BB_dim)
+        self.filt_meth = filt_meth
+        assert self.filt_meth =='std' or self.filt_meth=='ad_hoc','Undefined local activity filter'
+    
+    def save_im(self):
+        dim = self.BB_dim
+        T,N,M = self.stack.shape
+        
+        
+        stack_to_crop = np.empty_like(self.stack)
+        crop_stack = np.empty((T,dim,dim))
+        crop_mask = np.empty((2,dim,dim))
+        act_filt =np.zeros((N,M))
+        
+        TP_err=[]
+        if self.filt_meth == 'std':
+                for th1_p,th2_p in zip([0.3,0.25,0.20,0.15],[0.15,0.1,0.07,0.05]):
+                    print('THRESH',th1_p,th2_p)
+                    for coord in self.coord_list:
+          
+                        stack_to_crop = self.stack.copy()
+                        crop_stack = stack_to_crop[:,coord[1]:coord[3],coord[0]:coord[2]]        
+                        crop_mask_filt = self.filtering(crop_stack,th1_p,th2_p)
+                        act_filt[coord[1]:coord[3],coord[0]:coord[2]] += crop_mask_filt
+                        
+                    act_filt[act_filt>1]=1
+                    soma_err = 100*np.sum(self.mask[:,:,1]-self.mask[:,:,1]*act_filt)/np.sum(self.mask[:,:,1])
+                    proc_err = 100*np.sum(self.mask[:,:,0]-self.mask[:,:,0]*act_filt)/np.sum(self.mask[:,:,0])
+                    TP_err.append(np.asarray([soma_err,proc_err]))
+                                  
+        elif self.filt_meth == 'ad_hoc':
+                for th1_p in [0.3,0.25,0.20,0.15]:
+                    
+                    for coord in self.coord_list:
+                        stack_to_crop = self.stack.copy()
+                        crop_stack = stack_to_crop[:,coord[1]:coord[3],coord[0]:coord[2]]        
+                        crop_mask_filt = self.filtering_hoc(crop_stack,th1_p)
+                        act_filt[coord[1]:coord[3],coord[0]:coord[2]] += crop_mask_filt
+                        
+                    act_filt[act_filt>1]=1
+                    TP_err.append(100*np.sum(self.mask-self.mask*act_filt)/np.sum(self.mask))
+       
+        TP_err = np.asarray(TP_err)
+        return TP_err

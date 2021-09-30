@@ -53,8 +53,7 @@ def sel_active_gpu(T,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block):
 
 @cuda.jit
 def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block,last_stp):
-    #clean code 32 with step 5 with cycle 928 with step*cycle*iter-step
-    
+
     size = cuda.gridDim.x
     iterat = int(iter_block//(size//BPM_ratio))
     if iter_block%(size//BPM_ratio)>0:
@@ -62,7 +61,7 @@ def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter
         
     b_dimx = cuda.blockDim.x
     b_dimy = cuda.blockDim.y
-    stp_iter = b_dimx*(size//BPM_ratio)
+    stp_iter = stp*(size//BPM_ratio)
     
     bx = cuda.blockIdx.x  
     by = cuda.blockIdx.y
@@ -187,9 +186,10 @@ class sel_active_reg():
         sel_active_gpu[blockspergrid, threadsperblock](T,mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block)
         im_out = im_out_g.copy_to_host()
         cover = cover_g.copy_to_host()
+        
         self.mask_tot = np.empty_like(im_out)
-        self.mask_tot  = im_out/cover 
-        #print('qqqq',im_out.max(),im_out.min(),cover.max(),cover.min())
+        self.mask_tot  = np.sum(im_out/cover,axis=0)
+        
     
     def sel_active_reg_gpu_gen(self):
 
@@ -217,7 +217,10 @@ class sel_active_reg():
             
         #mat_per = np.zeros((T,len(self.step_list),len(self.step_list)))#,dtype=np.int32   
         ### allocate percentile matrix
-        if self.verbose: print('GPU started',blockspergrid, threadsperblock,self.iter_block/(self.blocks/self.BPM_ratio),self.step_list[-1])
+        
+        if self.verbose: print('Iteration per block: ',self.iter_block/(self.blocks//self.BPM_ratio))
+        
+        if self.verbose: print('GPU started with ',blockspergrid,' blocks and ' threadsperblock,' threads per block')
         
         mat_per_g = cuda.to_device(mat_per) 
         ### allocate in ram
@@ -235,7 +238,7 @@ class sel_active_reg():
             print(stps)
             
             for bz in range(blocks_to_load[stps+1]-blocks_to_load[stps]):
-                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1])
+                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1])#
                 
             ### free from old stack
             del stack_gpu
@@ -247,13 +250,13 @@ class sel_active_reg():
         
         self.mask_tot = np.empty_like(im_out).astype(np.float64)
         self.mask_tot  = im_out.astype(np.float64)/cover.astype(np.float64) 
-        #return im_out,cover
+        return im_out,cover
     
     
     def get_mask(self,find_round=True,long_rec=False):
         T,_,_ = self.stack.shape
         
-        if self.gpu_flag:
+        if self.gpu_flag and not(long_rec):
             self.sel_active_reg_gpu()
         elif self.gpu_flag and long_rec:
             self.sel_active_reg_gpu_gen()
@@ -270,20 +273,23 @@ class sel_active_reg():
             #this is an alternative strategy to select the strating point threshold the nearest to th_, it is a seed for the while below 
             #this strategy can be removed and th_ will be the T*self.init_th_ and not one of the seed points below
             # we used this strategy for dataset-1, this approach reduces large variation in th_ due to small variation in self.init_th_
+            ratio=1
             if T>500: 
+                ratio = (T/750)
                 th_list = [200,250,300,350,400,450,500,550,600,650,700]
-                th_list = np.asarray(th_list)
+                th_list = (T/750)*np.asarray(th_list)
                 th_ref =th_list-th_
                 th_ = th_list[np.argmin(np.abs(th_ref))]
+                
         cnt=0
-        #print(th_)
+        if self.verbose: print('Init threshold',th_)
         starting_th = th_
         flag_th=True
         N_pix = self.N_pix_st
         
         while(cnt<self.astro_num and N_pix>=self.N_pix_st*0.3 and th_>round(T*0.3)):
             if flag_th:
-                mask_tot_s = np.sum(self.mask_tot,axis=0)
+                mask_tot_s = self.mask_tot#np.sum(self.mask_tot,axis=0)
 
                 if self.corr_int:
                     mask_tot_s = scaling.ThMat(mask_tot_s,th_)
@@ -295,31 +301,31 @@ class sel_active_reg():
 
 
                 ret, labels_r = cv2.connectedComponents(mask_tot_s)
+                #print('ZONES',ret)
                 flag_th = False
 
             labels = labels_r.copy()
             cnt=0
             for i in range(1, ret):
                 pts =  np.where(labels == i)    
-
+                #print(len(pts[0]))
                 if len(pts[0]) < N_pix:
-
+                    
                     labels[pts] = 0
                 else:
                     cnt+=1
 
                     labels[pts] = 255         
-
+            #print('Found',cnt)
             N_pix-=self.decr_dim
-            if N_pix<=self.astr_min and (starting_th-th_)<105:
+            if N_pix<=self.astr_min and (starting_th-th_)<(ratio*105):
 
                 th_-=self.decr_th
                 flag_th = True  
                 N_pix=self.N_pix_st
 
 
-        if self.verbose:
-            print('Zones',cnt)
+        if self.verbose: print('Zones',cnt)
         # clean eventual artifacts
         ret, labels = cv2.connectedComponents(np.uint8(labels))
         for i in range(1, ret):
@@ -329,7 +335,3 @@ class sel_active_reg():
         labels[labels>0]=1
         return labels
     
-
-
-
-
