@@ -117,7 +117,7 @@ def clean_soma_art(soma_mask,soma_target):
 
     return soma_mask
 
-def small_soma_to_proc(soma_mask,N,dilation=True):
+def small_soma_to_proc(soma_mask,N,dilation=True,watershed=False):
     mask_tot = soma_mask.copy()
     if dilation:
         kernel=cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
@@ -138,8 +138,10 @@ def small_soma_to_proc(soma_mask,N,dilation=True):
         if len(pts[0]) <= N:
             labels[pts] = 1
         else:
-            
             labels[pts] = 0
+            #if watershed:
+                
+                
     mask_tot=labels
     return mask_tot
 

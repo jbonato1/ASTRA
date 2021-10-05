@@ -105,6 +105,7 @@ class sel_active_reg():
         self.decr_th = dict_params['decr_th']
         self.corr_int = dict_params['corr_int']
         self.gpu_flag = dict_params['gpu_flag']
+        self.jobs = -1
         self.static = static
         self.verbose = verbose
         self.iter_block = len(dict_params['list'])
@@ -125,12 +126,12 @@ class sel_active_reg():
 
         return matrix.astype(np.float32) 
 
-    def sel_active_cpu(self):
+    def sel_active_reg_cpu(self):
 
         T,N,M = self.stack.shape
-        T,N,M = stack.shape
+        
 
-        percent_list = Parallel(n_jobs=10,verbose=0)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
+        percent_list = Parallel(n_jobs=self.jobs,verbose=0)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
         percentiles = np.asarray(percent_list)
         mat_per = percentiles[:,:-1,:]
         mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]
@@ -138,8 +139,8 @@ class sel_active_reg():
         im_out = np.empty((T,N,M)) 
         cover = np.zeros((T,N,M)) 
         for i in range(T):
-            for x in self.listx:
-                for y in self.listy:
+            for x in self.step_list:
+                for y in self.step_list:
 
                     buffer_im = self.stack[i,x:x+self.bb,y:y+self.bb]-mat_per[i,x//self.stp,y//self.stp]
                     buffer_im[buffer_im<0]=0.
@@ -151,7 +152,7 @@ class sel_active_reg():
 
         
         self.mask_tot = np.empty_like(im_out)
-        self.mask_tot  = im_out/cover 
+        self.mask_tot  = np.sum(im_out/cover,axis=0)
     
     def sel_active_reg_gpu(self):
 
@@ -170,7 +171,7 @@ class sel_active_reg():
         
         # compute percentile in patches
         if not(self.static):
-            percent_list = Parallel(n_jobs=10)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
+            percent_list = Parallel(n_jobs=self.jobs)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
             percentiles = np.asarray(percent_list)
             mat_per = percentiles[:,:-1,:]
 
@@ -202,7 +203,7 @@ class sel_active_reg():
         if self.verbose: print('Computing local thresholds')
         # compute percentile in patches
         if not(self.static):
-            percent_list = Parallel(n_jobs=-1,verbose=1)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
+            percent_list = Parallel(n_jobs=self.jobs,verbose=1)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
             percentiles = np.asarray(percent_list).astype(np.float32)
             mat_per = percentiles[:,:-1,:]
 
@@ -220,7 +221,7 @@ class sel_active_reg():
         
         if self.verbose: print('Iteration per block: ',self.iter_block/(self.blocks//self.BPM_ratio))
         
-        if self.verbose: print('GPU started with ',blockspergrid,' blocks and ' threadsperblock,' threads per block')
+        if self.verbose: print('GPU started with ',blockspergrid,' blocks and ', threadsperblock,' threads per block')
         
         mat_per_g = cuda.to_device(mat_per) 
         ### allocate in ram
@@ -289,7 +290,7 @@ class sel_active_reg():
         
         while(cnt<self.astro_num and N_pix>=self.N_pix_st*0.3 and th_>round(T*0.3)):
             if flag_th:
-                mask_tot_s = self.mask_tot#np.sum(self.mask_tot,axis=0)
+                mask_tot_s = self.mask_tot.copy()#np.sum(self.mask_tot,axis=0)
 
                 if self.corr_int:
                     mask_tot_s = scaling.ThMat(mask_tot_s,th_)
