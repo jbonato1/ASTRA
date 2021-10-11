@@ -1,5 +1,5 @@
 FROM nvidia/cuda:10.1-devel-ubuntu18.04
-COPY installation/requirements.txt .
+COPY requirements.txt .
 RUN  apt-get update 
 RUN  apt-get install -y
 RUN  apt install git -y
