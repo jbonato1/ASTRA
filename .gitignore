@@ -6,6 +6,11 @@
 *.zip
 *.ipynb_checkpoints
 *.DS_Store
-/__pycache__/
+**/__pycache__/
 
+**/weights
+**/Time_est/
+aqua_data.ipynb
+**/exp_mod/
+**/weights/
 **/set[1-5]
