@@ -110,7 +110,48 @@ class sel_active_reg():
         self.verbose = verbose
         self.iter_block = len(dict_params['list'])
         self.gpu_num = 0
+    
+    def check_sel_active_reg_gpu_gen(self):
+
+        _,N,M = self.stack.shape
+        T=1
+        cuda.select_device(self.gpu_num)    
+
+        threadsperblock = (self.threads,self.threads)
+        blockspergrid = (self.blocks,self.blocks)
+             
+        ### allocate percentile matrix
         
+        if self.verbose: print('Iteration per block: ',self.iter_block/(self.blocks//self.BPM_ratio))
+        
+        if self.verbose: print('GPU started with ',blockspergrid,' blocks and ', threadsperblock,' threads per block')
+        mat_per = np.zeros((1,len(self.step_list),len(self.step_list)),dtype=np.int32)
+        mat_per_g = cuda.to_device(mat_per) 
+        ### allocate in ram
+        im_out = np.zeros((N,M),dtype=np.int32)
+        cover = np.zeros((N,M),dtype=np.int32)
+        ### allocate and load in DRAM
+        im_out_g = cuda.to_device(im_out)
+        cover_g = cuda.to_device(cover)
+
+        blocks_to_load =[i*1000 for i in range((T//1000)+1)]
+        blocks_to_load.append(T)
+       
+        for stps in range(len(blocks_to_load)-1):
+            stack_gpu = cuda.to_device(self.stack[blocks_to_load[stps]:blocks_to_load[stps+1],:,:])
+            
+            for bz in range(blocks_to_load[stps+1]-blocks_to_load[stps]):
+                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1])#
+                
+            ### free from old stack
+            del stack_gpu
+
+        im_out = im_out_g.copy_to_host()
+        cover = cover_g.copy_to_host()
+        assert cover.min()!=0, 'Check steps positions and BB'
+        assert (im_out/cover).max()==1,'Check steps positions,BB and input stack, MAX val too much high'
+        return im_out,cover
+    
     @staticmethod
     def percent_matrix_par(stack,t,listx,bb,per_tile):
         listy = listx

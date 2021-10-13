@@ -15,8 +15,8 @@ RASTA hyperparameters are optimized on the training set pre-processed. Set_param
 The inference pipeline comprises three main blocks - pre-processing, semantic segmentation, 
 and subcellular cross-correlation analysis - allowing an unbiased end-to-end characterization of the complex morphological and dynamical properties of astrocytes.  
 
-
-- Inference_Pipeline: In this notebook it is described how to perform AstroSS inference on the inference dataset
+- Setup_Activity_Map: In this notebook there is a guide for checking the activity map generator module parameters (steps for patches generations, blocks and threads for the GPU)
+- Inference_Pipeline: In this notebook it is described how to perform RASTA inference on the inference dataset
 - CC_Pipeline: perform sub-cellular cross-correlation analysis on detected astrocytes
 
 ### Pre-processing modules results
