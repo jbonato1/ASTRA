@@ -1,9 +1,9 @@
-**/.tiff
-**/.mp4
-**/.hdf5
-**/.pt
-**/.pkl
-**/.zip
-**/.ipynb_checkpoints
-**/.DS_Store
+**/*.tiff
+**/*.mp4
+**/*.hdf5
+**/*.pt
+**/*.pkl
+**/*.zip
+**/*.ipynb_checkpoints
+**/*.DS_Store
 **/__pycache__/
