@@ -200,7 +200,7 @@ class sel_active_reg():
     def sel_active_reg_gpu(self):
 
         T,N,M = self.stack.shape
-        cuda.select_device(2)    
+        cuda.select_device(self.gpu_num)       
         ### allocate in ram
         im_out = np.zeros((T,N,M),dtype=np.float32)
         cover = np.zeros((T,N,M),dtype=np.intc)
@@ -225,6 +225,12 @@ class sel_active_reg():
         elif self.static:
             mat_per = np.percentile(self.stack.flatten(),self.per_tile).reshape(1,1)
             mat_per = np.tile(mat_per,(T,1,1))
+            
+            
+        if self.verbose: print('Iteration per block: ',self.iter_block/(self.blocks//self.BPM_ratio))
+        
+        if self.verbose: print('GPU started with ',blockspergrid,' blocks and ', threadsperblock,' threads per block')
+            
         ### allocate percentile matrix
         mat_per_g = cuda.to_device(mat_per)    
         sel_active_gpu[blockspergrid, threadsperblock](T,mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block)
@@ -289,6 +295,7 @@ class sel_active_reg():
 
         im_out = im_out_g.copy_to_host()
         cover = cover_g.copy_to_host()
+        
         if self.verbose: print('GPU done')
         del im_out_g, cover_g, mat_per_g
         
@@ -301,9 +308,11 @@ class sel_active_reg():
         T,_,_ = self.stack.shape
         
         if self.gpu_flag and not(long_rec):
+            print('small data')
             self.sel_active_reg_gpu()
             
         elif self.gpu_flag and long_rec:
+            print('GEN')
             #t1 = time.time()
             self.sel_active_reg_gpu_gen()
             #print('check',time.time()-t1)

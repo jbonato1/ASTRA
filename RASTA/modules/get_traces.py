@@ -19,7 +19,7 @@ class Extr_miniROI():
         self.dilate_ROI=dilate_ROI
     
     @staticmethod
-    def det_conn_comp(processes,soma,dilate_ROI):
+    def det_conn_comp(processes,soma,dilate_ROI,split_proc):
         #print(processes.shape)
         N,M = processes.shape
         num,comp = cv2.connectedComponents(processes.astype(np.uint8))
@@ -33,7 +33,11 @@ class Extr_miniROI():
             for _ in range(dilate_ROI):
                 element = cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3))
                 buff = cv2.dilate(buff, element)
-            filtered = buff-soma-np.sum(processes_out,axis=0)
+            if not(split_proc):
+                ### this is done only for ImageJ rendering 
+                filtered = buff
+            else:
+                filtered = buff-soma-np.sum(processes_out,axis=0)
             filtered[filtered<1]=0
             processes_out[k-1,:,:]=filtered
             
@@ -44,7 +48,7 @@ class Extr_miniROI():
     
     def get_miniROI(self):
         
-        self.proc_to_split = self.det_conn_comp(self.proc_to_split,self.soma,self.dilate_ROI)
+        self.proc_to_split = self.det_conn_comp(self.proc_to_split,self.soma,self.dilate_ROI,self.split_proc)
         #print('check size',self.proc_to_split.shape)
         if self.split_proc :
             Nroi,H,W = self.proc_to_split.shape
