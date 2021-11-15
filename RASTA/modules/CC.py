@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 import cv2
 from get_traces import allineate_stack
-
+import time
 
 @torch.no_grad()
 def corr_mask(roi_proc,crop_stack,device,th_corr,nf_mFilter=5):
@@ -289,7 +289,8 @@ def main_CC(stack_o,mask_sp,device,r,coord_dict,shift):
     
     mask_single_corr = np.zeros((len(coord_st_l),2*r,2*r))
     mask_single_corr2 = np.zeros((len(coord_st_l),2*r,2*r))
-
+    t1 = time.time()
+    
     for j in range(mask_sp.shape[0]):
 
         #########################################pick coord
@@ -339,5 +340,6 @@ def main_CC(stack_o,mask_sp,device,r,coord_dict,shift):
 
             mask_single_corr[j,:,:]=out_tensor_np
             mask_single_corr2[j,:,:]=out__
+    print(time.time()-t1)
     mask_out[mask_out>1]=1
     return mask_single_corr2,mask_out

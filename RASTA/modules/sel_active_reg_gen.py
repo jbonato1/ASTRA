@@ -9,11 +9,13 @@ from joblib import Parallel, delayed
 import os
 import h5py
 from numba import cuda,float32,uint16,float64  
+import time
+
 
 class ThScal():
     def __init__(self,stack):
         kernel = np.ones((50,50),np.float32)/(50*50)
-        density = cv2.filter2D(np.median(stack,axis=0),-1,kernel)
+        density = cv2.filter2D(np.mean(stack,axis=0),-1,kernel)
         self.density = density/np.amax(density)
         
     def ThMat(self,ff,th_):
@@ -300,12 +302,16 @@ class sel_active_reg():
         
         if self.gpu_flag and not(long_rec):
             self.sel_active_reg_gpu()
+            
         elif self.gpu_flag and long_rec:
+            #t1 = time.time()
             self.sel_active_reg_gpu_gen()
+            #print('check',time.time()-t1)
         else:
             self.sel_active_reg_cpu()
     
         if self.corr_int:
+            
             scaling = ThScal(self.stack)
 
        
@@ -358,7 +364,7 @@ class sel_active_reg():
                     cnt+=1
 
                     labels[pts] = 255         
-            #print('Found',cnt)
+            #print('Found iter',cnt)
             N_pix-=self.decr_dim
             if N_pix<=self.astr_min and (starting_th-th_)<(ratio*105):
 

@@ -43,39 +43,44 @@ class Extr_miniROI():
         return area/self.Area_px
     
     def get_miniROI(self):
-        if self.split_proc :
-            self.proc_to_split = self.det_conn_comp(self.proc_to_split,self.soma,self.dilate_ROI)
-        #print('check size',self.proc_to_split.shape)
-        Nroi,H,W = self.proc_to_split.shape
-        collROI = []
-        for i in range(Nroi):
-            N = np.sum(self.proc_to_split[i,:,:])
-            k = self.get_k(N)
-            #print('ratio',k,int(k))
-            if int(k)<=1:
-                collROI.append(self.proc_to_split[i,:,:][:,:,np.newaxis])
-            else:
-                rr = k.astype(np.int64)
-                buff = np.zeros((H,W,rr))
-                pt = np.where(self.proc_to_split[i,:,:]==1)
-                X = np.asarray([pt[0],pt[1]]).T
-                
-                kmeans = KMeans(n_clusters=int(k), random_state=0).fit(X)
-                labels = kmeans.labels_
-                
-                for j in range(int(k)):
-                    pt_lb = np.where(labels==j)
-                    buff[X[pt_lb[0],0],X[pt_lb[0],1],j]=1
-                    
-                collROI.append(buff)
-        out = collROI[0]       
         
-        if len(collROI)>1:
-            for i in range(1,len(collROI)):  
-                #print(collROI[i].shape)
-                out = np.dstack((out,collROI[i]))
-        print('SPLIT DONE',out.shape)
-        return out
+        self.proc_to_split = self.det_conn_comp(self.proc_to_split,self.soma,self.dilate_ROI)
+        #print('check size',self.proc_to_split.shape)
+        if self.split_proc :
+            Nroi,H,W = self.proc_to_split.shape
+            collROI = []
+            for i in range(Nroi):
+                N = np.sum(self.proc_to_split[i,:,:])
+                k = self.get_k(N)
+                #print('ratio',k,int(k))
+                if int(k)<=1:
+                    collROI.append(self.proc_to_split[i,:,:][:,:,np.newaxis])
+                else:
+                    rr = k.astype(np.int64)
+                    buff = np.zeros((H,W,rr))
+                    pt = np.where(self.proc_to_split[i,:,:]==1)
+                    X = np.asarray([pt[0],pt[1]]).T
+
+                    kmeans = KMeans(n_clusters=int(k), random_state=0).fit(X)
+                    labels = kmeans.labels_
+
+                    for j in range(int(k)):
+                        pt_lb = np.where(labels==j)
+                        buff[X[pt_lb[0],0],X[pt_lb[0],1],j]=1
+
+                    collROI.append(buff)
+            out = collROI[0]       
+
+            if len(collROI)>1:
+                for i in range(1,len(collROI)):  
+                    #print(collROI[i].shape)
+                    out = np.dstack((out,collROI[i]))
+            print('SPLIT DONE',out.shape)
+            return out
+        else:
+            print('SPLIT DONE',self.proc_to_split.shape)
+            out = np.moveaxis(self.proc_to_split,[0,1,2],[2,0,1])
+            return out
     
     
     
@@ -223,7 +228,7 @@ class Motion_Correction():
             im_stream2[i,:,:] = cv2.warpAffine(im_stream2[i,:,:],M,(rows,cols))
         return im_stream2
         
-def update_dict_DNN(dict_im,single_astro_roi,fov_num,motion_corr,MAX_ROI_AREA_PROC,MU_PX):
+def update_dict_DNN(dict_im,single_astro_roi,fov_num,motion_corr,MAX_ROI_AREA_PROC,MU_PX,MiniROI=False):
     dict_im['Single_cell_mask_'+fov_num] = single_astro_roi
     dict_roi={}
     dict_traces={}
@@ -253,7 +258,7 @@ def update_dict_DNN(dict_im,single_astro_roi,fov_num,motion_corr,MAX_ROI_AREA_PR
             stack_buffer = dict_im['t-series_'+fov_num]
             
         print(50*'%','Extracting cell:',s_roi_num)
-        constr_split_roi = Extr_miniROI(MAX_ROI_AREA_PROC,MU_PX,single_astro_roi[s_roi_num,:,:,0],single_astro_roi[s_roi_num,:,:,1],True)
+        constr_split_roi = Extr_miniROI(MAX_ROI_AREA_PROC,MU_PX,single_astro_roi[s_roi_num,:,:,0],single_astro_roi[s_roi_num,:,:,1],MiniROI)
         arr_out_proc = constr_split_roi.get_miniROI()
         if  s_roi_num==0:
             list_out=arr_out_proc
