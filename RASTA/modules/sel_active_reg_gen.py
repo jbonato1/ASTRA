@@ -8,9 +8,9 @@ from scipy import signal
 from joblib import Parallel, delayed
 import os
 import h5py
-from numba import cuda,float32,uint16,float64  
+from numba import cuda,float32,uint16,float64,int64,int32
 import time
-
+from math import floor
 
 class ThScal():
     def __init__(self,stack):
@@ -54,10 +54,11 @@ def sel_active_gpu(T,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block):
 
 
 @cuda.jit
-def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block,last_stp):
-
+def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter_block,last_stp,debug=False):
+    
+   
     size = cuda.gridDim.x
-    iterat = int(iter_block//(size//BPM_ratio))
+    iterat = int32(iter_block//(size//BPM_ratio))
     if iter_block%(size//BPM_ratio)>0:
         iterat+=1
         
@@ -65,18 +66,25 @@ def sel_active_gpu_gen(bz,time_ref,per_mat,stack,im_out,cover,BPM_ratio,stp,iter
     b_dimy = cuda.blockDim.y
     stp_iter = stp*(size//BPM_ratio)
     
-    bx = cuda.blockIdx.x  
+    bx = cuda.blockIdx.x 
     by = cuda.blockIdx.y
             
     tx = cuda.threadIdx.x
     ty = cuda.threadIdx.y
     
-    for it in range(iterat*iterat):
-        it_bk =it//iterat
-        it_bk_y = it%iterat
-        if it_bk*stp_iter+((bx//BPM_ratio)*stp)<=last_stp and it_bk_y*stp_iter+((by//BPM_ratio)*stp)<=last_stp:
+    if bx*b_dimx+tx == 0 and by*b_dimx+ty==0 and debug==True:
+        #from pdb import set_trace; set_trace()
+        print('check',size//BPM_ratio)
+        print(iterat)
+        
 
-            if stack[bz,it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty] >= per_mat[bz+time_ref,it_bk*5+bx//BPM_ratio,it_bk_y*5+by//BPM_ratio]:
+    
+    for it in range(int32(iterat*iterat)):
+        it_bk =int32(it//iterat)
+        it_bk_y = int32(it%iterat)
+        if it_bk*stp_iter+((bx//BPM_ratio)*stp)<=last_stp and it_bk_y*stp_iter+((by//BPM_ratio)*stp)<=last_stp:
+                
+            if stack[bz,it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty] >= per_mat[bz+time_ref,it_bk*(size//BPM_ratio)+bx//BPM_ratio,it_bk_y*(size//BPM_ratio)+by//BPM_ratio]:
                 cuda.atomic.add(im_out,(it_bk*stp_iter+(bx//BPM_ratio)*stp+(bx%BPM_ratio)*b_dimx+tx,it_bk_y*stp_iter+(by//BPM_ratio)*stp+(by%BPM_ratio)*b_dimy+ty),1)
 
             if bz ==0 and time_ref==0:
@@ -113,7 +121,7 @@ class sel_active_reg():
         self.iter_block = len(dict_params['list'])
         self.gpu_num = 0
     
-    def check_sel_active_reg_gpu_gen(self):
+    def check_sel_active_reg_gpu_gen(self,void_out=True,debug=True):
 
         _,N,M = self.stack.shape
         T=1
@@ -124,9 +132,9 @@ class sel_active_reg():
              
         ### allocate percentile matrix
         
+        if self.verbose: print('GPU started with ',blockspergrid,' blocks and ', threadsperblock,' threads per block')
         if self.verbose: print('Iteration per block: ',self.iter_block/(self.blocks//self.BPM_ratio))
         
-        if self.verbose: print('GPU started with ',blockspergrid,' blocks and ', threadsperblock,' threads per block')
         mat_per = np.zeros((1,len(self.step_list),len(self.step_list)),dtype=np.int32)
         mat_per_g = cuda.to_device(mat_per) 
         ### allocate in ram
@@ -143,7 +151,8 @@ class sel_active_reg():
             stack_gpu = cuda.to_device(self.stack[blocks_to_load[stps]:blocks_to_load[stps+1],:,:])
             
             for bz in range(blocks_to_load[stps+1]-blocks_to_load[stps]):
-                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1])#
+                print('debug',debug)
+                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1],debug)#
                 
             ### free from old stack
             del stack_gpu
@@ -152,7 +161,10 @@ class sel_active_reg():
         cover = cover_g.copy_to_host()
         assert cover.min()!=0, 'Check steps positions and BB'
         assert (im_out/cover).max()==1,'Check steps positions,BB and input stack, MAX val too much high'
-        return im_out,cover
+        if void_out:
+            pass
+        else:
+            return im_out,cover
     
     @staticmethod
     def percent_matrix_par(stack,t,listx,bb,per_tile):
@@ -288,7 +300,7 @@ class sel_active_reg():
             print(stps)
             
             for bz in range(blocks_to_load[stps+1]-blocks_to_load[stps]):
-                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1])#
+                sel_active_gpu_gen[blockspergrid, threadsperblock](bz,blocks_to_load[stps],mat_per_g,stack_gpu,im_out_g,cover_g,self.BPM_ratio,self.stp,self.iter_block,self.step_list[-1],False)#
                 
             ### free from old stack
             del stack_gpu
