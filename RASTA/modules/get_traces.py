@@ -2,6 +2,8 @@ from sklearn.cluster import KMeans
 import numpy as np
 import cv2
 from motion_correction import Motion_Correction
+from skimage import io
+import pandas as pd
 
 class Extr_miniROI():
     
@@ -106,7 +108,21 @@ def allineate_stack(stack,shift,r_domain):
     T,N,M = stack.shape
     stack_out = np.zeros_like(stack)
     stack_pad = np.pad(stack,((0,0),(r_domain,r_domain),(r_domain,r_domain)), 'constant', constant_values=0)
+    
     for t in range(T):
+        if np.abs(shift[t,0])>(r_domain/2) or np.abs(shift[t,1])>(r_domain/2):
+            
+            if t<T-1 and t!=0:
+                shift[t,0] = (shift[t-1,0]+shift[t+1,0])/2
+                shift[t,1] = (shift[t-1,1]+shift[t+1,1])/2
+            elif t==T-1:
+                shift[t,0] = shift[t-1,0]
+                shift[t,1] = shift[t-1,1]
+            elif t==0:
+                shift[t,0] = shift[t+1,0]
+                shift[t,1] = shift[t+1,1]
+                
+        
         stack_out[t,:,:]= stack_pad[t,r_domain-shift[t,0]:r_domain+N-shift[t,0],r_domain-shift[t,1]:r_domain+M-shift[t,1]]
     return stack_out
 
@@ -239,3 +255,84 @@ def update_dict_DNN(dict_im,single_astro_roi,fov_num,motion_corr,MAX_ROI_AREA_PR
     dict_im['Final_Mask_fraction_'+fov_num] = list_out
     
     return dict_im
+
+
+def gen_dataframe(dict_traces):
+    col_name = list(dict_traces.keys())
+    N = dict_traces[col_name[0]].shape[0]
+    vect = np.empty((N,len(col_name)))
+    
+    i=0
+    for key in dict_traces.keys():
+        vect[:,i] = dict_traces[key]
+        i+=1
+        
+    return pd.DataFrame(vect,columns = col_name)
+
+def gen_raw_dataframe(single_astro_roi,stack_list_path,motion_corr,MAX_ROI_AREA_PROC,MU_PX,Astro_radius,MiniROI=False,gpu=True):
+    
+    print("ROI NUM",single_astro_roi.shape[0])    
+    
+    dict_im = {}
+    dataframe_list = []
+    
+    if motion_corr : mc  = Motion_Correction(pix_precision=1,gpu=gpu)
+    fov_num = 0 
+    for stack_path in stack_list_path:
+        
+        print('Analyzing: ',stack_path)
+        stack_current = io.imread(stack_path)
+        
+        dict_roi={}
+        dict_traces={}
+        dict_cell_coord={}
+        dict_cell_shift={}
+        
+        for s_roi_num in range(single_astro_roi.shape[0]):
+            name = str(s_roi_num)
+
+            coord_list_st,coord_list_circle, coord_list_cell = create_bb_coord_domain(single_astro_roi[s_roi_num,:,:,1])
+            dict_cell_coord['ST_'+f'{name:0>3}'] = coord_list_st[0]
+            dict_cell_coord['CIRCLE_'+f'{name:0>3}'] = coord_list_circle[0]
+            dict_cell_coord['BB_cell_'+f'{name:0>3}'] = coord_list_cell[0]
+            if motion_corr:
+                coord_bb = coord_list_cell[0]
+    #             print('Shift_'+f'{name:0>3}')
+                dict_cell_shift['Shift_'+f'{name:0>3}'] = mc.motion_corr(stack_current[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]],\
+                               ref_image=np.mean(stack_current[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]],axis=0))
+
+                stack_buffer = allineate_stack(stack_current,dict_cell_shift['Shift_'+f'{name:0>3}'],r_domain=Astro_radius)
+            else:
+                stack_buffer = stack_current
+
+            print(50*'%','Extracting cell:',s_roi_num)
+            constr_split_roi = Extr_miniROI(MAX_ROI_AREA_PROC,MU_PX,single_astro_roi[s_roi_num,:,:,0],single_astro_roi[s_roi_num,:,:,1],MiniROI,2)
+            arr_out_proc = constr_split_roi.get_miniROI()
+            if  s_roi_num==0:
+                list_out=arr_out_proc
+            else:
+                list_out = np.dstack((list_out,arr_out_proc))
+
+            dict_roi['Soma_'+f'{name:0>3}'] = np.where(single_astro_roi[s_roi_num,:,:,1]==1)
+            dict_traces['Soma_'+f'{name:0>3}'] = get_signal(single_astro_roi[s_roi_num,:,:,1],stack_buffer)
+            for proc_num in range(arr_out_proc.shape[2]):
+                name_proc = str(proc_num)
+                dict_roi['Proc_'+f'{name:0>3}'+'_'+f'{name_proc:0>3}'] = np.where(arr_out_proc[:,:,proc_num]==1)
+                dict_traces['Proc_'+f'{name:0>3}'+'_'+f'{name_proc:0>3}']  = get_signal(arr_out_proc[:,:,proc_num],stack_buffer)
+            print('Extraction: done')
+        
+        
+        dataframe_list.append(gen_dataframe(dict_traces))
+        
+        dict_im['ROI_'+str(fov_num)] = dict_roi
+        dict_im['crop_coord_ROI_'+str(fov_num)] = dict_cell_coord
+
+        if motion_corr:
+            dict_im['shift_ROI_'+str(fov_num)] = None
+        else:
+            dict_im['shift_ROI_'+str(fov_num)] = dict_cell_coord
+
+        fov_num+=1
+        
+    
+    return dict_im,dataframe_list

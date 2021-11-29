@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from skimage import io
 import h5py
 from joblib import Parallel, delayed
+import torch 
 
 def create_bb_coord(soma_mask,BB_dim):
     #use even BB_dim
@@ -368,11 +369,13 @@ class spatial_pp():
         T,N,M = self.stack.shape
         conv_im = np.empty((N,M))
         perc = np.zeros((T))
-        
+        import time
+        t1 = time.time()
         list_frame = Parallel(n_jobs=-1,verbose=1,require='sharedmem')(delayed(self.clean_stack)(self.stack[i,:,:],i) for i in range(T))
         for el in list_frame:
             perc[el[1]] = el[0]
-      
+        _ = self.stack-perc[:,np.newaxis,np.newaxis]
+        print(time.time()-t1)
         del list_frame
         ratio = int(N/patch)
         im_out = Parallel(n_jobs=-1,verbose=1,require='sharedmem')(delayed(self.median_par)(self.stack[:,(i//ratio)*patch:(i//ratio)*patch+patch,(i%ratio)*patch:(i%ratio)*patch+patch],perc,i) for i in range(16))
@@ -382,6 +385,22 @@ class spatial_pp():
             conv_im[(idx//ratio)*patch:(idx//ratio)*patch+patch,(idx%ratio)*patch:(idx%ratio)*patch+patch] = el[0]
         
         del im_out#,stack_new
+        
+        ######## torch 
+      
+        #t1 = time.time()
+#         g=torch.tensor(self.stack.astype(np.int32)).to(device='cuda:0')#
+        
+#         for jj in range(T):
+#             g[jj,:,:] = g[jj,:,:] - torch.quantile(g[jj,:,:].type(torch.float32),0.1).type(torch.int32)
+        
+#         conv_im_gpu = torch.median(g,dim=0).values
+#         conv_im = conv_im_gpu.cpu().numpy()
+        
+#         del conv_im_gpu,g
+#         torch.cuda.empty_cache()
+        #print(time.time()-t1)
+        #########
         
         maximum = 65535/np.amax(conv_im) 
         
@@ -530,7 +549,7 @@ class filt_im(spatial_pp):
     
     
     @staticmethod
-    def gen_single_im(crop_stack,crop_im,i,filt_meth,pad):
+    def gen_single_im(crop_stack,crop_im,i,pad,th1_p=0.25,th2_p=0.1):
         
         def filtering(stack,th1_p=0.25,th2_p=0.1):
             T,N,M = stack.shape
@@ -564,7 +583,7 @@ class filt_im(spatial_pp):
         
         T,N,M = crop_stack.shape
 
-        crop_mask_filt = filtering(crop_stack)
+        crop_mask_filt = filtering(crop_stack,th1_p,th2_p)
 
         
         out_stack =np.empty((2,N+2*pad,M+2*pad),dtype=np.float32)
@@ -599,7 +618,7 @@ class filt_im(spatial_pp):
         out_stack = np.empty((len(self.coord_list),2,out_dim,out_dim))
         act_filt =np.zeros((N,M))
         
-        list_out = Parallel(n_jobs=-1,verbose=1,require='sharedmem')(delayed(self.gen_single_im)(self.stack[:,self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],self.im_enh[self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],i,self.filt_meth,pad) for i in range(len(self.coord_list)))
+        list_out = Parallel(n_jobs=-1,verbose=1,require='sharedmem')(delayed(self.gen_single_im)(self.stack[:,self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],self.im_enh[self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],i,pad) for i in range(len(self.coord_list)))
         ###recompose
         ###
         for res in list_out:
@@ -611,6 +630,8 @@ class filt_im(spatial_pp):
         act_filt[act_filt>1]=1
         return out_stack,act_filt
 
+    
+    
 class tune_th(filt_im):
     
     def __init__(self, stack,mask,BB_dim,filt_meth='std'):
@@ -619,7 +640,7 @@ class tune_th(filt_im):
         self.mask = mask
         self.coord_list,self.filt_im_zone = create_bb_coord(mask[:,:,1],BB_dim)
         self.filt_meth = filt_meth
-        assert self.filt_meth =='std' or self.filt_meth=='ad_hoc','Undefined local activity filter'
+        assert self.filt_meth =='std' or self.filt_meth =='std_par' or self.filt_meth=='ad_hoc','Undefined local activity filter'
     
     def save_im(self):
         dim = self.BB_dim
@@ -635,18 +656,41 @@ class tune_th(filt_im):
         if self.filt_meth == 'std':
                 for th1_p,th2_p in zip([0.3,0.25,0.20,0.15],[0.15,0.1,0.07,0.05]):
                     print('THRESH',th1_p,th2_p)
+                    ##### to par
                     for coord in self.coord_list:
           
                         stack_to_crop = self.stack.copy()
                         crop_stack = stack_to_crop[:,coord[1]:coord[3],coord[0]:coord[2]]        
                         crop_mask_filt = self.filtering(crop_stack,th1_p,th2_p)
                         act_filt[coord[1]:coord[3],coord[0]:coord[2]] += crop_mask_filt
-                        
+                    ##### to par
                     act_filt[act_filt>1]=1
                     soma_err = 100*np.sum(self.mask[:,:,1]-self.mask[:,:,1]*act_filt)/np.sum(self.mask[:,:,1])
                     proc_err = 100*np.sum(self.mask[:,:,0]-self.mask[:,:,0]*act_filt)/np.sum(self.mask[:,:,0])
                     TP_err.append(np.asarray([soma_err,proc_err]))
-                                  
+        
+        elif self.filt_meth == 'std_par':
+            self.im_enh = np.ones((N,M))
+            pad=0 
+            out_dim = self.BB_dim + 2*pad
+            for th1_p,th2_p in zip([0.3,0.25,0.20,0.15],[0.15,0.1,0.07,0.05]):
+                print('THRESH',th1_p,th2_p)
+                ##### to par
+                act_filt =np.zeros((N,M))
+
+                list_out = Parallel(n_jobs=-1,verbose=1,require='sharedmem')(delayed(self.gen_single_im)(self.stack[:,self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],self.im_enh[self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],i,pad,th1_p,th2_p) for i in range(len(self.coord_list)))
+                ###recompose
+                ###
+                for res in list_out:
+                    idx = res[1]
+                    act_filt[self.coord_list[idx][1]:self.coord_list[idx][3],self.coord_list[idx][0]:self.coord_list[idx][2]] += res[0][1,pad:out_dim-pad,pad:out_dim-pad]
+
+                act_filt[act_filt>1]=1
+                soma_err = 100*np.sum(self.mask[:,:,1]-self.mask[:,:,1]*act_filt)/np.sum(self.mask[:,:,1])
+                proc_err = 100*np.sum(self.mask[:,:,0]-self.mask[:,:,0]*act_filt)/np.sum(self.mask[:,:,0])
+                TP_err.append(np.asarray([soma_err,proc_err]))  
+
+        
         elif self.filt_meth == 'ad_hoc':
                 for th1_p in [0.3,0.25,0.20,0.15]:
                     

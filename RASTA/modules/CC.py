@@ -6,7 +6,7 @@ from get_traces import allineate_stack
 import time
 
 @torch.no_grad()
-def corr_mask(roi_proc,crop_stack,device,th_corr,nf_mFilter=5):
+def corr_mask(roi_proc,crop_stack,device,th_corr,nf_mFilter=21):#5
     ##tensor definition
     roi_num,N,M = roi_proc.shape
     map_ = torch.from_numpy(np.uint8(roi_proc.reshape(roi_num,N*M)))
@@ -72,7 +72,7 @@ def corr_mask(roi_proc,crop_stack,device,th_corr,nf_mFilter=5):
 
 class comp_err_correlation():
     
-    def __init__(self,coord_st_l,coord_cir_l,stack,mask_test,radius=60,nf_mFilter=5):
+    def __init__(self,coord_st_l,coord_cir_l,stack,mask_test,radius=45,nf_mFilter=5):
         self.coord_st_l = coord_st_l
         self.coord_cir_l = coord_cir_l
         self.stack = stack
@@ -146,38 +146,47 @@ class comp_err_correlation():
         
         th_list=[0.85,0.88,0.9,0.91,0.92,0.93,0.94,0.95]
         th_corr=th_list[0]
-        th_list_red=[0.85,0.80,0.75,0.65,0.60]
+        th_list_red=[0.85,0.80,0.75,0.65,0.60,0.55,0.45,0.40]
       
         flag_red = True
         flag=True
-        while( flag and ind_list_red<4 and ind_list<7 ):
+        
+        list_corr = []
+        for iter_ in range(20):
+            print('ITER: ',iter_)
+            list_cell = []
+            for j in range(len( self.coord_st_l)):
+
+                coord_bb = self.coord_st_l[j]
+                coord_circonf = self.coord_cir_l[j]
+
+                stack_crop = np.empty((self.T,self.radius*2,self.radius*2))
+                stack_crop = self.stack[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]].copy()
+
+
+
+                mask_crop = np.sum(self.mask_test[j,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2],:],axis=2)
+                mask_crop[mask_crop>1]=1
+
+                f_stack = self.gen_false(self.stack,self.coord_cir_l)
+                corr_vect = self.coor_false_discovery(mask_crop,stack_crop,f_stack,device)
+                max_ = np.amax(corr_vect,axis=2)
+                max_ = np.amax(max_,axis=0)
+                list_cell.append(max_.copy())
+                
+            list_corr.append(list_cell)
+        print('Ref Corr matrix computed')    
+        while( flag and ind_list_red<(len(th_list_red)-1) and ind_list<(len(th_list)-1) ):
             for iter_ in range(20):
                 if iter_==0:
                     res_final=0
                 res=0
                 for j in range(len( self.coord_st_l)):
-
-                   
-                    coord_bb = self.coord_st_l[j]
-                    coord_circonf = self.coord_cir_l[j]
-
-                    stack_crop = np.empty((self.T,self.radius*2,self.radius*2))
-                    stack_crop = self.stack[:,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2]].copy()
-
-
-
-                    mask_crop = np.sum(self.mask_test[j,coord_bb[1]:coord_bb[3],coord_bb[0]:coord_bb[2],:],axis=2)
-                    mask_crop[mask_crop>1]=1
-
-                    f_stack = self.gen_false(self.stack,self.coord_cir_l)
-                    corr_vect = self.coor_false_discovery(mask_crop,stack_crop,f_stack,device)
-                    max_ = np.amax(corr_vect,axis=2)
-                    max_ = np.amax(max_,axis=0)
-                    th =max_.copy()
+                    
+                    th = list_corr[iter_][j]
                     th[th<th_corr]=0
                     th[th>0]=1
                     #print('tmp',np.sum(th)/1000)
-                    
                     res+=(np.sum(th)/1000)
 
                 res/=len(self.coord_st_l) 
@@ -191,9 +200,9 @@ class comp_err_correlation():
             if res_final<0.01 and flag_red:
                 ind_list_red+=1
                 th_corr = th_list_red[ind_list_red]
-                if ind_list_red==4:
+                if ind_list_red==(len(th_list_red)-1):
                     th_out = th_corr
-                    print('Min correlation threshold 0.6')
+                    print('Min correlation threshold: ',th_out)
                 print('New th',th_corr)
             
             elif res_final<0.06 and res_final>=0.01 and flag_red:
@@ -214,9 +223,9 @@ class comp_err_correlation():
                 else:
                     ind_list+=1
                     th_corr = th_list[ind_list]
-                    if ind_list == 7:
+                    if ind_list == len(th_list)-1:
                         th_out = th_corr
-                        print('Max correlation threshold 0.95')
+                        print('Max correlation threshold: ',th_out)
                     flag_red=False
 
             
@@ -264,7 +273,7 @@ def cleanCC_for_signals(dict_ROI,mask_ROI,MAX_ROI_AREA_PROC):
 
 
 def main_CC(stack_o,mask_sp,device,r,coord_dict,shift):
-    
+    print('radius',r)
     
     print(10*'/','CORR ANALysis',10*'/')
     stack = stack_o.copy()
@@ -281,7 +290,6 @@ def main_CC(stack_o,mask_sp,device,r,coord_dict,shift):
 
     err_corr = comp_err_correlation(coord_st_l,coord_cir_l,stack,mask_sp)
     th_corr =err_corr.find_threshold()
-
     #######################
 
     mask_out  = np.zeros((mask_sp.shape[0],N,M,3))

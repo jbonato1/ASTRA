@@ -12,6 +12,8 @@ from numba import cuda,float32,uint16,float64,int64,int32
 import time
 from math import floor
 
+import torch
+
 class ThScal():
     def __init__(self,stack):
         kernel = np.ones((50,50),np.float32)/(50*50)
@@ -180,6 +182,31 @@ class sel_active_reg():
                 matrix[i,j] = np.percentile(stack[t,x:x+bb,y:y+bb],per_tile)  
 
         return matrix.astype(np.float32) 
+    
+    @staticmethod
+    def percent_matrix_torch(stack,listx,bb,per_tile):
+        stack_gpu = torch.tensor(stack.astype(np.int32)).to(device='cuda:0')#
+        listy = listx
+        dim = len(listx)
+        T = stack.shape[0]
+        matrix = torch.zeros((T,dim,dim),dtype=torch.float32).to(device='cuda:0')#
+        
+        #for t in range(T):
+        for i in range(dim):
+            for j in range(dim):
+
+                x = listx[i] 
+                y = listy[j]
+                if T>5000:
+                    for rng in [[0,5000],[5000,T]]:
+                        matrix[rng[0]:rng[1],i,j] = torch.quantile(torch.quantile(stack_gpu[rng[0]:rng[1],x:x+bb,y:y+bb].type(torch.float32),0.01*per_tile,dim=1),0.01*per_tile,dim=1)   
+                else:
+                    matrix[:,i,j] = torch.quantile(torch.quantile(stack_gpu[:,x:x+bb,y:y+bb].type(torch.float32),0.01*per_tile,dim=1),0.01*per_tile,dim=1)   
+        matrix_out = matrix.cpu().numpy().astype(np.float32) 
+        del matrix, stack_gpu
+        
+        torch.cuda.empty_cache()
+        return matrix_out
 
     def sel_active_reg_cpu(self):
 
@@ -264,12 +291,12 @@ class sel_active_reg():
         if self.verbose: print('Computing local thresholds')
         # compute percentile in patches
         if not(self.static):
-            percent_list = Parallel(n_jobs=self.jobs,verbose=1)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
-            percentiles = np.asarray(percent_list).astype(np.float32)
-            mat_per = percentiles[:,:-1,:]
+#             percent_list = Parallel(n_jobs=self.jobs,verbose=1)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
+#             percentiles = np.asarray(percent_list).astype(np.float32)
+#             mat_per = percentiles[:,:-1,:]
 
-            mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]# reorder the embarasing parallel collection of mat
-            
+#             mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]# reorder the embarasing parallel collection of mat
+            mat_per = self.percent_matrix_torch(self.stack,self.step_list,self.bb,self.per_tile)
         #### mod for static fluorophore
         # compute a single percentile for all the stack, and than generate a T x num_patch x num_patch 
         elif self.static:
