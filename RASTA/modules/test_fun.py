@@ -397,6 +397,40 @@ def common_merge_par(sm_fr,sm_ent):
 
 
 
+def create_bb_split(soma_mask):
+    N,_ = soma_mask.shape
+    soma = np.empty((N,N))
+    soma = soma_mask.copy()
+    soma[soma>0.1]=255
+
+    _,thresh = cv2.threshold(np.uint8(soma),127,255,0)
+
+    # find contours in the binary image
+    contours, _= cv2.findContours(thresh,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
+
+    # loop over the contours
+    #list of array with the coordinate
+    coord_list_st = []
+    coord_list_cell = []
+    coord_list_circle = []
+    centre_coord = []
+    for c in contours:
+        im_buff = np.zeros((N,N))
+
+        # compute the center of the contour
+        M = cv2.moments(c)
+        cX = int(M["m10"] / (M["m00"]+1e-5))
+        cY = int(M["m01"] / (M["m00"]+1e-5))
+
+
+        cv2.circle(im_buff,(cX,cY),40,(255,0,0),thickness =-1,lineType=8)
+        coord_circle = np.where(im_buff==255)
+        coord_list_circle.append(coord_circle)
+        centre_coord.append([cX,cY])
+        
+    return coord_list_circle,centre_coord
+
+
 def gen_sc_mask(mask):
     N,M,cl = mask.shape
     
@@ -411,21 +445,41 @@ def gen_sc_mask(mask):
         cnt_m = CC*mask[:,:,1]
         proc_single_m = CC*mask[:,:,0]
         soma_num,mark = cv2.connectedComponents(np.uint8(cnt_m.copy()))
-        mark+=1
+        print(soma_num)
         if soma_num>2:
 
-
             print('Split CComp')
-            circ_coord = create_bb(cnt_m)
-
+            circ_coord,centre_coord = create_bb_split(cnt_m)
+            
+            
+            cnt_soma=0    
             for circ in circ_coord:
                 circ_f =np.zeros_like(cnt_m)
                 circ_f[circ[0],circ[1]]=1
                 instance = np.zeros((N,M,2))
+                
+                for sm in range(1,soma_num):
+                    pt_soma = np.where(mark==sm)
+                    if (centre_coord[cnt_soma][1] in pt_soma[0]) and (centre_coord[cnt_soma][0] in pt_soma[1]):
+                        instance[pt_soma[0],pt_soma[1],1]=1
+                
                 instance[:,:,0]=proc_single_m*circ_f
-                instance[:,:,1]=cnt_m*circ_f
+                
+                ret_instance, labels_instance = cv2.connectedComponents(np.uint8(np.sum(instance,axis=2)))
+                for inst in range(1,ret_instance):
+                    pt_dealloc = np.where(labels_instance==inst)
+                    buff_inst = np.zeros((N,M))
+                    buff_inst[pt_dealloc[0],pt_dealloc[1]]=1
+                    
+                    if np.sum(buff_inst*instance[:,:,1])==0:
+                        instance[pt_dealloc[0],pt_dealloc[1],0]=0
+                        
                 if np.sum(instance[:,:,1])>0:
+                    if cnt_soma>0:
+                        instance[:,:,0]-=inst_list[-1][:,:,0]
+                        instance[instance<0]=0
                     inst_list.append(instance)
+                cnt_soma+=1
                 
   
 

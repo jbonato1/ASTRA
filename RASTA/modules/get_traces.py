@@ -246,9 +246,9 @@ def update_dict_DNN(dict_im,single_astro_roi,fov_num,motion_corr,MAX_ROI_AREA_PR
     dict_im['crop_coord_ROI_'+fov_num] = dict_cell_coord
     
     if motion_corr:
-        dict_im['shift_ROI_'+fov_num] = None
+        dict_im['shift_ROI_'+fov_num] = dict_cell_shift
     else:
-        dict_im['shift_ROI_'+fov_num] = dict_cell_coord
+        dict_im['shift_ROI_'+fov_num] = None
         
     #### for Visualization purposes
     list_out = np.dstack((list_out,dict_im['Final_Mask_'+fov_num][:,:,1:]))
@@ -330,7 +330,7 @@ def gen_raw_dataframe(single_astro_roi,stack_list_path,motion_corr,MAX_ROI_AREA_
         if motion_corr:
             dict_im['shift_ROI_'+str(fov_num)] = None
         else:
-            dict_im['shift_ROI_'+str(fov_num)] = dict_cell_coord
+            dict_im['shift_ROI_'+str(fov_num)] = dict_cell_shift
 
         fov_num+=1
         

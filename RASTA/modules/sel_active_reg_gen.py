@@ -291,12 +291,14 @@ class sel_active_reg():
         if self.verbose: print('Computing local thresholds')
         # compute percentile in patches
         if not(self.static):
-#             percent_list = Parallel(n_jobs=self.jobs,verbose=1)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
-#             percentiles = np.asarray(percent_list).astype(np.float32)
-#             mat_per = percentiles[:,:-1,:]
+            percent_list = Parallel(n_jobs=self.jobs,verbose=1)(delayed(self.percent_matrix_par) (self.stack,i,self.step_list,self.bb,self.per_tile) for i in range(T))
+            percentiles = np.asarray(percent_list).astype(np.float32)
+            mat_per = percentiles[:,:-1,:]
 
-#             mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]# reorder the embarasing parallel collection of mat
-            mat_per = self.percent_matrix_torch(self.stack,self.step_list,self.bb,self.per_tile)
+            mat_per = mat_per[percentiles[:,-1,0].astype(np.int32),:,:]# reorder the embarasing parallel collection of mat
+            
+            #mat_per = self.percent_matrix_torch(self.stack,self.step_list,self.bb,self.per_tile)# with pytorch update
+        
         #### mod for static fluorophore
         # compute a single percentile for all the stack, and than generate a T x num_patch x num_patch 
         elif self.static:

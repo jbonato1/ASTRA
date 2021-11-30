@@ -386,9 +386,9 @@ class spatial_pp():
         
         del im_out#,stack_new
         
-        ######## torch 
+        ######## with torch update 
       
-        #t1 = time.time()
+        
 #         g=torch.tensor(self.stack.astype(np.int32)).to(device='cuda:0')#
         
 #         for jj in range(T):
@@ -399,7 +399,7 @@ class spatial_pp():
         
 #         del conv_im_gpu,g
 #         torch.cuda.empty_cache()
-        #print(time.time()-t1)
+        
         #########
         
         maximum = 65535/np.amax(conv_im) 
