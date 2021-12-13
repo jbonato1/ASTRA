@@ -28,16 +28,19 @@ def export_roi(dict_im,fov_list,N=256,M=256,folder_save = '/media/DATA/jbonato/a
 
             roiwrite(folder_save+'ROI_'+folder+'_MC.zip', list_roi)
 
-        
 
-def read_roi_curated(fov,N=256,M=256,folder_read='/media/DATA/jbonato/astro_segm/notebook/'):
+def read_roi_curated(file,N=256,M=256):
     
-    rois_instances = roiread(folder_read+'ROI_'+fov+'_MC.zip')
+    rois_instances = roiread(file)
     cnt_soma = 0
+    max_ind_soma = 0
     for roi in rois_instances:
         if 'Soma' in roi.name:
-            cnt_soma+=1
-
+            num_buff = int(roi.name[5:8])
+            if max_ind_soma<num_buff:
+                max_ind_soma = num_buff
+                
+    cnt_soma = max_ind_soma+1
     mask_out = np.zeros((cnt_soma,N,M,3))
     for roi in rois_instances:
         if 'Soma' in roi.name:
@@ -59,7 +62,15 @@ def read_roi_curated(fov,N=256,M=256,folder_read='/media/DATA/jbonato/astro_segm
                     mask_out[num,x,y,c]=1
             
     mask_out[mask_out>1]=1
-    return mask_out
+    
+    list_empty = []
+    
+    for i in range(cnt_soma):
+        if np.sum(mask_out[i,:,:,1])==0:
+             list_empty.append(i)
+    out = np.delete(mask_out,list_empty,axis=0)
+    return out
+    
         
 
 def clean_dict(dict_im,fov_list):

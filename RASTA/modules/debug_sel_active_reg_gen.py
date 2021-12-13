@@ -48,7 +48,7 @@ dict_param
 
 print(dict_param)
 
-stack = np.zeros((700,256,256),dtype=np.float32)
+stack = np.zeros((4000,256,256),dtype=np.float32)
 
 a_reg = sel_active_reg(stack.astype(np.float32),dict_param)
 
