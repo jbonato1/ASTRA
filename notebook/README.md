@@ -2,7 +2,7 @@
 ## RASTA step by step notebooks
 This software is composed by 2 pipelines named training and inference.
 
-<div style="text-align:center"><img src="../github_images/SIfigure1.svg" width="700" alt="Pipelines"/>
+<div style="text-align:center"><img src="../github_images/SIfigure1.png" width="700" alt="Pipelines"/>
 
 RASTA hyperparameters are optimized on the training set pre-processed. Set_parameters, Training_Pipeline_PP and Training_PIpeline_Training_DNN are the notebooks where Training procedure is described. 
 
