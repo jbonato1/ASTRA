@@ -16,8 +16,8 @@ from sel_active_reg_gen import sel_active_reg
 
 
 
-with open('/media/DATA/jbonato/astro_segm/set1/.tmp/dict_dataset1.txt', "rb") as fp:   
-    dict_param = pickle.load(fp)
+#with open('/media/DATA/jbonato/astro_segm/set1/.tmp/dict_dataset1.txt', "rb") as fp:   
+#    dict_param = pickle.load(fp)
     
 
 # dict_param['blocks']=8
@@ -41,14 +41,35 @@ with open('/media/DATA/jbonato/astro_segm/set1/.tmp/dict_dataset1.txt', "rb") as
 #     dict_param = pickle.load(fp)
 # dict_param['init_th_'] = 0.5
 
-# dict_param['BPM_ratio']=3
-# dict_param['blocks']= 15
-# dict_param['threads']=32
-dict_param
+#dict_param['BPM_ratio']=6
+#dict_param['blocks']= 15
+#dict_param['threads']=16
+#dict_param
+dict_param = {
+    'list':[i*33 for i in range(45)],
+    'blocks':17*2,
+    'threads':24,
+    'BPM_ratio':2,
+    'bb':48,
+    'N_pix_st':50, #starting minimum area
+    'astr_min':100,#100
+    'percentile': 80,#80
+    'pad':0,
+    'astro_num':150, # number of astro min in FOV ####150 but for 1170 is 100 # 300 for fov 0020 5
+    'init_th_':0.5, #.3 for 1170 ,.5 threshold initialization approx. 125
+    'decr_dim':5, # astro area decrease
+    'decr_th':25, # temporal threshold decrease
+    'corr_int':True, # intensity correction flag
+    'gpu_flag':True
+    }
 
+
+
+dict_param['th1_p']=0.20
+dict_param['th2_p']=0.08
 print(dict_param)
 
-stack = np.zeros((4000,256,256),dtype=np.float32)
+stack = np.zeros((10,1500,1500),dtype=np.float32)
 
 a_reg = sel_active_reg(stack.astype(np.float32),dict_param)
 

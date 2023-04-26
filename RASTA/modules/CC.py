@@ -6,7 +6,7 @@ from get_traces import allineate_stack
 import time
 
 @torch.no_grad()
-def corr_mask(roi_proc,crop_stack,device,th_corr,nf_mFilter=21):#5
+def corr_mask(roi_proc,crop_stack,device,th_corr,nf_mFilter=5):#5
     ##tensor definition
     roi_num,N,M = roi_proc.shape
     map_ = torch.from_numpy(np.uint8(roi_proc.reshape(roi_num,N*M)))
@@ -94,7 +94,7 @@ class comp_err_correlation():
         ref[:,-rm_px:]=0
         coord_false = np.where(ref==1)
         #print("qwqwq",len(coord_false[0]))
-        coord_rnd = np.random.choice(len(coord_false[0]), 1000, replace=False)
+        coord_rnd = np.random.choice(len(coord_false[0]), 250, replace=False)
 
         rnd_mask[coord_false[0][coord_rnd],coord_false[1][coord_rnd]]=1
         #plt.imshow(rnd_mask)
@@ -146,13 +146,13 @@ class comp_err_correlation():
         
         th_list=[0.85,0.88,0.9,0.91,0.92,0.93,0.94,0.95]
         th_corr=th_list[0]
-        th_list_red=[0.85,0.80,0.75,0.65,0.60,0.55,0.45,0.40]
+        th_list_red=[0.85,0.80,0.75,0.7,0.65,0.60]#,0.55,0.45,0.40]
       
         flag_red = True
         flag=True
         
         list_corr = []
-        for iter_ in range(20):
+        for iter_ in range(5):
             print('ITER: ',iter_)
             list_cell = []
             for j in range(len( self.coord_st_l)):
@@ -177,27 +177,27 @@ class comp_err_correlation():
             list_corr.append(list_cell)
         print('Ref Corr matrix computed')    
         while( flag and ind_list_red<(len(th_list_red)-1) and ind_list<(len(th_list)-1) ):
-            for iter_ in range(20):
+            for iter_ in range(5):
                 if iter_==0:
                     res_final=0
                 res=0
                 for j in range(len( self.coord_st_l)):
                     
-                    th = list_corr[iter_][j]
+                    th = list_corr[iter_][j].copy()
                     th[th<th_corr]=0
                     th[th>0]=1
                     #print('tmp',np.sum(th)/1000)
-                    res+=(np.sum(th)/1000)
+                    res+=(np.sum(th)/250)
 
                 res/=len(self.coord_st_l) 
                 
                 res_final+=res
                 #print('res_final',res_final)
-            res_final/=20
+            res_final/=5
 
             print('correlation error = {:f} with threshold = {:f}'.format(res_final,th_corr))#res_final,th_corr
             
-            if res_final<0.01 and flag_red:
+            if res_final<0.02 and flag_red:
                 ind_list_red+=1
                 th_corr = th_list_red[ind_list_red]
                 if ind_list_red==(len(th_list_red)-1):
@@ -205,7 +205,7 @@ class comp_err_correlation():
                     print('Min correlation threshold: ',th_out)
                 print('New th',th_corr)
             
-            elif res_final<0.06 and res_final>=0.01 and flag_red:
+            elif res_final<0.06 and res_final>=0.02 and flag_red:
                 th_out = th_corr
                 flag=False
                 print('Reduction finish')

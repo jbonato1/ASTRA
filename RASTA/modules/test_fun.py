@@ -445,7 +445,6 @@ def gen_sc_mask(mask):
         cnt_m = CC*mask[:,:,1]
         proc_single_m = CC*mask[:,:,0]
         soma_num,mark = cv2.connectedComponents(np.uint8(cnt_m.copy()))
-        print(soma_num)
         if soma_num>2:
 
             print('Split CComp')

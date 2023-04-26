@@ -252,7 +252,7 @@ class spatial_pp():
             stack_new[t,:,:] = stack_new[t,:,:] - np.percentile(stack_new[t,:,:],10)
             stack_new[t,:,:][stack_new[t,:,:]<0]=0 
 
-        conv_im = np.median(stack_new,axis=0)       
+        conv_im = np.median(stack_new,axis=0)  
         maximum = 65535/np.amax(conv_im) 
         conv_im =conv_im.astype(np.float32)*maximum   
 
@@ -413,6 +413,52 @@ class spatial_pp():
         denoise = np.uint16(cl1)
         
         return cl1,denoise
+    
+    def create_img_meso(self,T_st=0):
+
+        #_,N,M = self.stack.shape
+        
+        if T_st==0:
+            self.stack = self.stack.astype(np.int32)
+        else:
+            self.stack = self.stack[:T_st,:,:].astype(np.int32)
+            
+        #stack_new = self.stack.copy()
+
+        T,N,M = self.stack.shape
+        conv_im = np.empty((N,M))
+        conv_im = np.mean(self.stack,axis=0)
+        maximum = 65535/np.amax(conv_im) 
+        conv_im =conv_im.astype(np.float32)*maximum   
+        print(conv_im.max(),conv_im.min())
+
+        clahe = cv2.createCLAHE(clipLimit = 0.5 ,tileGridSize=(8,8))
+        cl1 = clahe.apply(np.uint16(conv_im)) 
+        
+        return cl1,cl1
+        
+    def create_img_meso_patch(self,T_st=0):
+
+        #_,N,M = self.stack.shape
+        
+        if T_st==0:
+            self.stack = self.stack.astype(np.int32)
+        else:
+            self.stack = self.stack[:T_st,:,:].astype(np.int32)
+            
+        #stack_new = self.stack.copy()
+
+        T,N,M = self.stack.shape
+        conv_im = np.empty((N,M))
+        conv_im = np.mean(self.stack,axis=0)
+        maximum = 65535/np.amax(conv_im) 
+        conv_im =conv_im.astype(np.float32)*maximum   
+        print(conv_im.max(),conv_im.min())
+
+        clahe = cv2.createCLAHE(clipLimit = 0.5 ,tileGridSize=(1,1))
+        cl1 = clahe.apply(np.uint16(conv_im)) 
+        
+        return cl1,cl1
 
 
 ###################################################### Inference PP
@@ -493,14 +539,21 @@ class filt_im(spatial_pp):
         print('check',self.stack.shape)
         
         T,N,M = self.stack.shape
-        if case==1:
-            _,im = self.create_img()
-        elif case==2:
-            _,im = self.create_img_d2()
-        elif case==3:
-            _,im = self.create_img_large()
-        elif case==4:    
-            _,im = self.create_img_d4()
+        if type(case) is np.ndarray:
+            im  = case
+            
+        else:        
+            if case==1:
+                _,im = self.create_img()
+            elif case==2:
+                _,im = self.create_img_d2()
+            elif case==3:
+                _,im = self.create_img_large()
+            elif case==4:    
+                _,im = self.create_img_d4()
+            elif case==5:    
+                _,im = self.create_img_meso()
+
             
         im_to_crop = np.empty_like(im)
         stack_to_crop = np.empty_like(self.stack)
@@ -594,7 +647,7 @@ class filt_im(spatial_pp):
         
         return [out_stack,i]
     
-    def save_im_par(self,pad=5,stack=None,case=1,im_enh=None):
+    def save_im_par(self,pad=5,stack=None,case=1,im_enh=None,th1_p=0.25,th2_p=0.1):
         if not(stack is None):
             self.stack = stack
         
@@ -618,7 +671,7 @@ class filt_im(spatial_pp):
         out_stack = np.empty((len(self.coord_list),2,out_dim,out_dim))
         act_filt =np.zeros((N,M))
         
-        list_out = Parallel(n_jobs=-1,verbose=1,require='sharedmem')(delayed(self.gen_single_im)(self.stack[:,self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],self.im_enh[self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],i,pad) for i in range(len(self.coord_list)))
+        list_out = Parallel(n_jobs=-1,verbose=1,require='sharedmem')(delayed(self.gen_single_im)(self.stack[:,self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],self.im_enh[self.coord_list[i][1]:self.coord_list[i][3],self.coord_list[i][0]:self.coord_list[i][2]],i,pad,th1_p,th2_p) for i in range(len(self.coord_list)))
         ###recompose
         ###
         for res in list_out:

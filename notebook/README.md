@@ -2,7 +2,7 @@
 ## RASTA step by step notebooks
 This software is composed by 2 pipelines named training and inference.
 
-<div style="text-align:center"><img src="../github_images/test_train.svg" width="700" alt="Pipelines"/>
+<div style="text-align:center"><img src="../github_images/SIfigure1.svg" width="700" alt="Pipelines"/>
 
 RASTA hyperparameters are optimized on the training set pre-processed. Set_parameters, Training_Pipeline_PP and Training_PIpeline_Training_DNN are the notebooks where Training procedure is described. 
 
@@ -21,19 +21,16 @@ and subcellular cross-correlation analysis - allowing an unbiased end-to-end cha
 
 ### Pre-processing modules results
 
-<img src="../github_images/D1_pp_st.png" alt="Pre-proc"/>
+<img src="../github_images/SIfigure2.png" alt="Pre-proc"/>
 
 ### Segmentation Results
-| Semantic Segmentation      | 
+| Semantic Segmentation and single cells details| 
 |:------------:|
-|  <img src="../github_images/D1_sampleA.png" width="600"> |
+|  <img src="../github_images/figure2.png" width="600"> |
 
-|Single cell Details|
-|:------------------:|
-|  <img src="../github_images/D1_res_ex.png" width="600"> |
 
 ### Cross Correlation analysis Results
-<img src="../github_images/D1_cc_.png" width="600" alt="Cross_corr"/>
+<img src="../github_images/figure3.png" width="600" alt="Cross_corr"/>
 
 ### GUI for ROIs visualization and signal extraction
 In Inference_Pipeline.ipynb and CC_Pipeline.ipynb notebooks we added a GUI for ROIs visualization and signal extraction embedded in jupyter.

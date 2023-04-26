@@ -9,7 +9,10 @@ def export_roi(dict_im,fov_list,N=256,M=256,folder_save = '/media/DATA/jbonato/a
     
 
     for fov in fov_list:
-        folder = f'{str(fov):0>3}'
+        if len(str(fov))<=3:
+            folder = f'{str(fov):0>3}'
+        else:
+            folder = fov
         if os.path.isfile(folder_save+'ROI_'+folder+'_MC.zip'):
             print('Attention: File ',folder_save+'ROI_'+folder+'_MC.zip',' already present')
         else:

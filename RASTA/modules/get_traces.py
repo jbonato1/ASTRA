@@ -211,7 +211,7 @@ def update_dict_DNN(dict_im,single_astro_roi,fov_num,motion_corr,MAX_ROI_AREA_PR
     for s_roi_num in range(single_astro_roi.shape[0]):
         name = str(s_roi_num)
         
-        coord_list_st,coord_list_circle, coord_list_cell = create_bb_coord_domain(single_astro_roi[s_roi_num,:,:,1])
+        coord_list_st,coord_list_circle, coord_list_cell = create_bb_coord_domain(single_astro_roi[s_roi_num,:,:,1],radius = dict_im['Astro_domain_radius'])
         dict_cell_coord['ST_'+f'{name:0>3}'] = coord_list_st[0]
         dict_cell_coord['CIRCLE_'+f'{name:0>3}'] = coord_list_circle[0]
         dict_cell_coord['BB_cell_'+f'{name:0>3}'] = coord_list_cell[0]
