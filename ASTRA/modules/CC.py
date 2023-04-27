@@ -243,34 +243,21 @@ def clean_outer_pixel(astro_roi,num_pix):
     
     return astro_roi
 
-def cleanCC_for_signals(dict_ROI,mask_ROI,MAX_ROI_AREA_PROC):
+
+def cleanCC(mask_ROI_or,MAX_ROI_AREA_PROC):
+    mask_ROI = mask_ROI_or.copy()
     _,N,M,_ = mask_ROI.shape
-    for key in dict_ROI.keys():
-        coord = dict_ROI[key]
-        mask_ROI[:,coord[0],coord[1],2]=0
-    mask_ROI_clean = np.zeros_like(mask_ROI)
-    mask_ROI_clean[:,:,:,:2] = mask_ROI[:,:,:,:2]
     
-    mask_ROI_inter_region = np.zeros((N,M))
-    
-    for i in range(mask_ROI.shape[0]):
-        num,comp = cv2.connectedComponents(mask_ROI[i,:,:,2].astype(np.uint8))
+    for i in range(mask_ROI.shape[0]):#mask_ROI.shape[0]
+        num,comp = cv2.connectedComponents(mask_ROI_or[i,:,:,2].astype(np.uint8))
         for k in range(1,num):
             pt = np.where(comp==k)
             if pt[0].shape[0]>=(MAX_ROI_AREA_PROC)//2:
-                mask_ROI_clean[i,pt[0],pt[1],2]=1
-    ### Intersection regions
-    mask_ROI_inter_region = np.sum(mask_ROI_clean[:,:,:,2],axis=0)
-    mask_ROI_inter_region[mask_ROI_inter_region<=1]=0
-    
-    for i in range(mask_ROI.shape[0]):
-        for j in range(i+1,mask_ROI.shape[0]):
-            mask_ROI_clean[i,:,:,2]-=mask_ROI_clean[j,:,:,2]
-    
-    mask_ROI_clean[mask_ROI_clean<0]=0
-    
-    return mask_ROI_clean,mask_ROI_inter_region
-
+                mask_ROI[i,pt[0],pt[1],2]=1
+            else:
+                mask_ROI[i,pt[0],pt[1],2]=0
+                
+    return mask_ROI
 
 def main_CC(stack_o,mask_sp,device,r,coord_dict,shift):
     print('radius',r)

@@ -47,17 +47,18 @@ class Extr_miniROI():
     def get_k(self,area):
         return area/self.Area_px
     
-    def get_miniROI(self):
+    def get_miniROI(self,verbose=False):
         
         self.proc_to_split = self.det_conn_comp(self.proc_to_split,self.soma,self.dilate_ROI,self.split_proc)
         #print('check size',self.proc_to_split.shape)
         if self.split_proc :
             Nroi,H,W = self.proc_to_split.shape
+            if verbose: print('SHAPE proc to split: ', Nroi,H,W)
             collROI = []
             for i in range(Nroi):
                 N = np.sum(self.proc_to_split[i,:,:])
                 k = self.get_k(N)
-                #print('ratio',k,int(k))
+                if verbose: print('ratio',k,int(k))
                 if int(k)<=1:
                     collROI.append(self.proc_to_split[i,:,:][:,:,np.newaxis])
                 else:

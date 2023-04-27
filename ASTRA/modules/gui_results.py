@@ -162,10 +162,12 @@ def draw_roi_traces(im,Res_mat,dict_im,mapped,id_,cell_num,window):
     else:
         im_rois = get_im(rois,im)
     c = ['snow','lime','red']
+    
     palette = copy(mapped.value)
+    palette.set_bad(c[1],1.0)
     palette.set_over(c[0],1.0)
     palette.set_under(c[2],1.0)
-    palette.set_bad(c[1],1.0)
+    
 
    
     zm2 = ma.masked_where(im_rois==4,im_rois)

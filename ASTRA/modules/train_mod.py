@@ -6,8 +6,7 @@ import torch
 import torch.nn as nn
 from collections import defaultdict
 import numpy as np
-#import faulthandler
-#faulthandler.enable()
+
 
 #Loss
 def dice_loss(prediction, tar, smooth = .5):
