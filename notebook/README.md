@@ -16,7 +16,7 @@ The inference pipeline comprises three main blocks - pre-processing, semantic se
 and subcellular cross-correlation analysis - allowing an unbiased end-to-end characterization of the complex morphological and dynamical properties of astrocytes.  
 
 - Setup_Activity_Map: In this notebook there is a guide for checking the activity map generator module parameters (steps for patches generations, blocks and threads for the GPU)
-- Inference_Pipeline: In this notebook it is described how to perform RASTA inference on the inference dataset
+- Inference_Pipeline: In this notebook it is described how to perform RASTA inference on the inference dataset. For testing purpose you can download from this link (https://drive.google.com/drive/folders/1peJZZx1PmS2v-MJQSm_ORRDsG6elZpRq?usp=sharing) a sample from dataset-1 and DNN weights trained on dataset-1 with leave-one-out cross validation.
 - CC_Pipeline: perform sub-cellular cross-correlation analysis on detected astrocytes
 
 ### Pre-processing modules results
