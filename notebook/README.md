@@ -1,14 +1,14 @@
 
-## RASTA step by step notebooks
+## ASTRA step by step notebooks
 This software is composed by 2 pipelines named training and inference.
 
 <div style="text-align:center"><img src="../github_images/SIfigure1.png" width="700" alt="Pipelines"/>
 
-RASTA hyperparameters are optimized on the training set pre-processed. Set_parameters, Training_Pipeline_PP and Training_PIpeline_Training_DNN are the notebooks where Training procedure is described. 
+ASTRA hyperparameters are optimized on the training set pre-processed. Set_parameters, Training_Pipeline_PP and Training_PIpeline_Training_DNN are the notebooks where Training procedure is described. 
 
 
-- Set_parameters: in this notebook it is described how to set all the hyperparameters of RASTA using the training set 
-- Training_Pipeline_PP: in this notebook it is described how to perform the preprocessing of training pipeline in RASTA
+- Set_parameters: in this notebook it is described how to set all the hyperparameters of ASTRA using the training set 
+- Training_Pipeline_PP: in this notebook it is described how to perform the preprocessing of training pipeline in ASTRA
 - Training_Pipeline_Training_DNN: in this notebook it is described how to train the DNN
 
 
@@ -16,7 +16,7 @@ The inference pipeline comprises three main blocks - pre-processing, semantic se
 and subcellular cross-correlation analysis - allowing an unbiased end-to-end characterization of the complex morphological and dynamical properties of astrocytes.  
 
 - Setup_Activity_Map: In this notebook there is a guide for checking the activity map generator module parameters (steps for patches generations, blocks and threads for the GPU)
-- Inference_Pipeline: In this notebook it is described how to perform RASTA inference on the inference dataset. For testing purpose you can download from this link (https://drive.google.com/drive/folders/1peJZZx1PmS2v-MJQSm_ORRDsG6elZpRq?usp=sharing) a sample from dataset-1 and DNN weights trained on dataset-1 with leave-one-out cross validation.
+- Inference_Pipeline: In this notebook it is described how to perform ASTRA inference on the inference dataset. For testing purpose you can download from this link (https://drive.google.com/drive/folders/1peJZZx1PmS2v-MJQSm_ORRDsG6elZpRq?usp=sharing) a sample from dataset-1 and DNN weights trained on dataset-1 with leave-one-out cross validation.
 - CC_Pipeline: perform sub-cellular cross-correlation analysis on detected astrocytes
 
 ### Pre-processing modules results
