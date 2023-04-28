@@ -105,3 +105,8 @@ In this folder there is the script to download each dataset and organize dataset
 
 ## weights
 In this folder there is a script to download DNN weights used for benchmarking ASTRA on dataset D1,D2,D3
+
+## Gitlab version
+This repo is a clone from https://github.com/jbonato1/ASTRA used for the BioRxiv version    of the manuscript.
+    
+For updated versions of the code look at github repo: https://github.com/jbonato1/ASTRA
