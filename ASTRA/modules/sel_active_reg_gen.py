@@ -2,7 +2,7 @@ import numpy as np
 from skimage import io
 import matplotlib.pyplot as plt
 import cv2
-from sklearn.externals.joblib import Parallel, delayed
+from joblib import Parallel, delayed
 from skimage.restoration import denoise_nl_means,estimate_sigma
 from scipy import signal
 from joblib import Parallel, delayed

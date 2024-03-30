@@ -32,6 +32,8 @@ and subcellular cross-correlation analysis - allowing an unbiased end-to-end cha
 -->
 This code has been developed with Python 3.6.7, Pytorch 1.1 with CUDA 10.1. All the packages are listed in the requirements.txt
 
+**UPDATE** Dockerfile has been updated with python3.10, Pytorch 2.2 with CUDA 12.2. All the packages are listed in the requirements.txt
+
 
 ## Installer
 Installer can be used to install all the fundamental packages used in ASTRA if python 3.6.7 is already installed. If you need to
@@ -44,10 +46,10 @@ install python run:
 With file gpu_setup1.sh in folder installation, cuda packages will be downloaded and installed
 With file set_up2 all the necessary python packages will be installed and a virtual environment will be set-up
 
-## Nvidia-Docker (recommended) 
+## Nvidia-Docker (recommended for updated version) 
 We have written a Dockerfile to use our software on nvida-docker and skip the manual installation of each package. 
 - Install nvidia-docker if you have not installed it on your machine. Follow instructions at https://github.com/NVIDIA/nvidia-docker
-- run: "docker pull nvidia/cuda:10.1-devel-ubuntu18.04"
+- run: "docker pull nvidia/cuda:12.2.2-devel-ubuntu22.04"
 - run: "docker build -t astro_segm:1.0 ."
 
 ### Attention: if your docker images fail to resolve DNS follow these workarounds
@@ -106,7 +108,3 @@ In this folder there is the script to download each dataset and organize dataset
 ## weights
 In this folder there is a script to download DNN weights used for benchmarking ASTRA on dataset D1,D2,D3
 
-## Gitlab version
-This repo is a clone from https://github.com/jbonato1/ASTRA used for the BioRxiv version    of the manuscript.
-    
-For updated versions of the code look at github repo: https://github.com/jbonato1/ASTRA

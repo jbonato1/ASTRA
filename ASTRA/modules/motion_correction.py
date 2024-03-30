@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
-from skimage.feature import register_translation
 
+from skimage.registration import phase_cross_correlation
 
 class Motion_Correction():
     """ inputs: 
@@ -43,7 +43,7 @@ class Motion_Correction():
             shift_vec = self.register_translation_gpu(ref_image, im_stream,upsample_factor=self.pix_precision)
         else:
             for i in range(T):
-                shift_vec[i,:],_,_ = register_translation(ref_image, im_stream[i,:,:],upsample_factor=self.pix_precision)
+                shift_vec[i,:],_,_ = phase_cross_correlation(ref_image, im_stream[i,:,:],upsample_factor=self.pix_precision)
 
         X_shift = np.array([np.arange(T),shift_vec[:,1]])
         Y_shift = np.array([np.arange(T),shift_vec[:,0]])
