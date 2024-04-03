@@ -5,7 +5,6 @@
 *.pkl
 *.zip
 *.ipynb_checkpoints
-*.txt
 *.DS_Store
 **/__pycache__/
 
